@@ -422,6 +422,26 @@ em {
   line-height: 1;
 }
 
+.btn--add {
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--leaf);
+  color: #f4faf6;
+  font-size: 1.65rem;
+  font-weight: 500;
+  line-height: 1;
+  box-shadow: 0 10px 22px rgba(27, 67, 50, 0.28);
+}
+
+.btn--add:hover {
+  background: var(--leaf-mid);
+}
+
 .btn--tiny {
   padding: 0.35rem 0.7rem;
   font-size: 0.78rem;
@@ -878,12 +898,12 @@ em {
   }
 
   .panel__head--row {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    align-items: flex-start;
   }
 
-  .panel__head--row .btn--primary {
-    width: 100%;
+  .panel__head--row .btn--add {
+    margin-top: 0.15rem;
   }
 
   .sheet {

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { Expense, ExpenseKind } from '../types'
 import { EXPENSE_CATEGORIES } from '../types'
 import { createExpense, daysInMonth, formatMoney } from '../lib/storage'
+import { AddIconButton, FormSheet } from './FormSheet'
 
 interface Props {
   monthKey: string
@@ -43,15 +44,9 @@ export function ExpensesPanel({
   })
 
   useEffect(() => {
-    if (!open) return
-    const timer = window.setTimeout(() => firstFieldRef.current?.focus(), 40)
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') closeForm()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => {
-      window.clearTimeout(timer)
-      window.removeEventListener('keydown', onKey)
+    if (open) {
+      const timer = window.setTimeout(() => firstFieldRef.current?.focus(), 40)
+      return () => window.clearTimeout(timer)
     }
   }, [open])
 
@@ -119,9 +114,7 @@ export function ExpensesPanel({
           <h2 id="gastos-title">Gastos del mes</h2>
           <p>Registra cargos únicos, fijos o que se repiten cada mes.</p>
         </div>
-        <button type="button" className="btn btn--primary" onClick={openCreate}>
-          Añadir gasto
-        </button>
+        <AddIconButton label="Añadir gasto" onClick={openCreate} />
       </header>
 
       <ul className="list">
@@ -164,116 +157,90 @@ export function ExpensesPanel({
         ))}
       </ul>
 
-      {open && (
-        <div className="sheet" role="presentation" onClick={closeForm}>
-          <div
-            className="sheet__panel"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="gasto-form-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <header className="sheet__head">
-              <div>
-                <h3 id="gasto-form-title">
-                  {editingId ? 'Editar gasto' : 'Nuevo gasto'}
-                </h3>
-                <p>Completa los datos y guarda el cargo.</p>
-              </div>
-              <button
-                type="button"
-                className="btn btn--icon"
-                aria-label="Cerrar"
-                onClick={closeForm}
-              >
-                ×
-              </button>
-            </header>
-
-            <form className="form form--sheet" onSubmit={handleSubmit}>
-              <div className="form__row">
-                <label>
-                  Concepto
-                  <input
-                    ref={firstFieldRef}
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Ej. Supermercado"
-                    required
-                  />
-                </label>
-                <label>
-                  Importe (CLP)
-                  <input
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    inputMode="numeric"
-                    placeholder="450000"
-                    required
-                  />
-                </label>
-              </div>
-              <div className="form__row form__row--3">
-                <label>
-                  Categoría
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                  >
-                    {EXPENSE_CATEGORIES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Tipo
-                  <select
-                    value={kind}
-                    onChange={(e) => setKind(e.target.value as ExpenseKind)}
-                  >
-                    <option value="unico">Único</option>
-                    <option value="fijo">Fijo</option>
-                    <option value="mensual">Mensual</option>
-                  </select>
-                </label>
-                <label>
-                  Día
-                  <input
-                    type="number"
-                    min={1}
-                    max={maxDay}
-                    value={day}
-                    onChange={(e) => setDay(e.target.value)}
-                    placeholder="—"
-                  />
-                </label>
-              </div>
-              <label>
-                Notas
-                <input
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Opcional"
-                />
-              </label>
-              <div className="form__actions">
-                <button
-                  type="button"
-                  className="btn btn--ghost"
-                  onClick={closeForm}
-                >
-                  Cancelar
-                </button>
-                <button type="submit" className="btn btn--primary">
-                  {editingId ? 'Guardar cambios' : 'Guardar gasto'}
-                </button>
-              </div>
-            </form>
+      <FormSheet
+        open={open}
+        title={editingId ? 'Editar gasto' : 'Nuevo gasto'}
+        description="Completa los datos y guarda el cargo."
+        onClose={closeForm}
+      >
+        <form className="form form--sheet" onSubmit={handleSubmit}>
+          <div className="form__row">
+            <label>
+              Concepto
+              <input
+                ref={firstFieldRef}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ej. Supermercado"
+                required
+              />
+            </label>
+            <label>
+              Importe (CLP)
+              <input
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                inputMode="numeric"
+                placeholder="450000"
+                required
+              />
+            </label>
           </div>
-        </div>
-      )}
+          <div className="form__row form__row--3">
+            <label>
+              Categoría
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              >
+                {EXPENSE_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Tipo
+              <select
+                value={kind}
+                onChange={(e) => setKind(e.target.value as ExpenseKind)}
+              >
+                <option value="unico">Único</option>
+                <option value="fijo">Fijo</option>
+                <option value="mensual">Mensual</option>
+              </select>
+            </label>
+            <label>
+              Día
+              <input
+                type="number"
+                min={1}
+                max={maxDay}
+                value={day}
+                onChange={(e) => setDay(e.target.value)}
+                placeholder="—"
+              />
+            </label>
+          </div>
+          <label>
+            Notas
+            <input
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Opcional"
+            />
+          </label>
+          <div className="form__actions">
+            <button type="button" className="btn btn--ghost" onClick={closeForm}>
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn--primary">
+              {editingId ? 'Guardar cambios' : 'Guardar gasto'}
+            </button>
+          </div>
+        </form>
+      </FormSheet>
     </section>
   )
 }

@@ -1,7 +1,8 @@
 import type { FormEvent } from 'react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Importance, Recurrence, Task } from '../types'
 import { createTask, daysInMonth } from '../lib/storage'
+import { AddIconButton, FormSheet } from './FormSheet'
 
 interface Props {
   monthKey: string
@@ -37,6 +38,7 @@ export function TasksPanel({
   onRemove,
   onToggle,
 }: Props) {
+  const [open, setOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [notes, setNotes] = useState('')
   const [importance, setImportance] = useState<Importance>('media')
@@ -44,6 +46,7 @@ export function TasksPanel({
   const [dueDay, setDueDay] = useState('')
   const [filter, setFilter] = useState<'todas' | Importance | 'pendientes'>('todas')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const firstFieldRef = useRef<HTMLInputElement>(null)
 
   const maxDay = daysInMonth(monthKey)
 
@@ -60,6 +63,13 @@ export function TasksPanel({
       return (a.dueDay ?? 99) - (b.dueDay ?? 99)
     })
 
+  useEffect(() => {
+    if (open) {
+      const timer = window.setTimeout(() => firstFieldRef.current?.focus(), 40)
+      return () => window.clearTimeout(timer)
+    }
+  }, [open])
+
   function resetForm() {
     setTitle('')
     setNotes('')
@@ -69,6 +79,16 @@ export function TasksPanel({
     setEditingId(null)
   }
 
+  function closeForm() {
+    setOpen(false)
+    resetForm()
+  }
+
+  function openCreate() {
+    resetForm()
+    setOpen(true)
+  }
+
   function startEdit(task: Task) {
     setEditingId(task.id)
     setTitle(task.title)
@@ -76,6 +96,7 @@ export function TasksPanel({
     setImportance(task.importance)
     setRecurrence(task.recurrence)
     setDueDay(task.dueDay != null ? String(task.dueDay) : '')
+    setOpen(true)
   }
 
   function handleSubmit(e: FormEvent) {
@@ -96,12 +117,12 @@ export function TasksPanel({
     } else {
       onAdd(createTask(payload))
     }
-    resetForm()
+    closeForm()
   }
 
   return (
     <section className="panel" aria-labelledby="tareas-title">
-      <header className="panel__head">
+      <header className="panel__head panel__head--row">
         <div>
           <h2 id="tareas-title">Tareas del mes</h2>
           <p>
@@ -109,71 +130,8 @@ export function TasksPanel({
             <em>mensuales</em> se repiten al cambiar de mes.
           </p>
         </div>
+        <AddIconButton label="Añadir tarea" onClick={openCreate} />
       </header>
-
-      <form className="form" onSubmit={handleSubmit}>
-        <label>
-          Tarea
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Ej. Renovar seguro"
-            required
-          />
-        </label>
-        <div className="form__row form__row--3">
-          <label>
-            Importancia
-            <select
-              value={importance}
-              onChange={(e) => setImportance(e.target.value as Importance)}
-            >
-              <option value="alta">Alta</option>
-              <option value="media">Media</option>
-              <option value="baja">Baja</option>
-            </select>
-          </label>
-          <label>
-            Tipo
-            <select
-              value={recurrence}
-              onChange={(e) => setRecurrence(e.target.value as Recurrence)}
-            >
-              <option value="fija">Fija (este mes)</option>
-              <option value="mensual">Mensual (se repite)</option>
-            </select>
-          </label>
-          <label>
-            Día límite
-            <input
-              type="number"
-              min={1}
-              max={maxDay}
-              value={dueDay}
-              onChange={(e) => setDueDay(e.target.value)}
-              placeholder="—"
-            />
-          </label>
-        </div>
-        <label>
-          Notas
-          <input
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Opcional"
-          />
-        </label>
-        <div className="form__actions">
-          {editingId && (
-            <button type="button" className="btn btn--ghost" onClick={resetForm}>
-              Cancelar
-            </button>
-          )}
-          <button type="submit" className="btn btn--primary">
-            {editingId ? 'Guardar tarea' : 'Añadir tarea'}
-          </button>
-        </div>
-      </form>
 
       <div className="filters" role="tablist" aria-label="Filtrar tareas">
         {(
@@ -250,6 +208,76 @@ export function TasksPanel({
           </li>
         ))}
       </ul>
+
+      <FormSheet
+        open={open}
+        title={editingId ? 'Editar tarea' : 'Nueva tarea'}
+        description="Completa los datos de la tarea."
+        onClose={closeForm}
+      >
+        <form className="form form--sheet" onSubmit={handleSubmit}>
+          <label>
+            Tarea
+            <input
+              ref={firstFieldRef}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Ej. Renovar seguro"
+              required
+            />
+          </label>
+          <div className="form__row form__row--3">
+            <label>
+              Importancia
+              <select
+                value={importance}
+                onChange={(e) => setImportance(e.target.value as Importance)}
+              >
+                <option value="alta">Alta</option>
+                <option value="media">Media</option>
+                <option value="baja">Baja</option>
+              </select>
+            </label>
+            <label>
+              Tipo
+              <select
+                value={recurrence}
+                onChange={(e) => setRecurrence(e.target.value as Recurrence)}
+              >
+                <option value="fija">Fija (este mes)</option>
+                <option value="mensual">Mensual (se repite)</option>
+              </select>
+            </label>
+            <label>
+              Día límite
+              <input
+                type="number"
+                min={1}
+                max={maxDay}
+                value={dueDay}
+                onChange={(e) => setDueDay(e.target.value)}
+                placeholder="—"
+              />
+            </label>
+          </div>
+          <label>
+            Notas
+            <input
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Opcional"
+            />
+          </label>
+          <div className="form__actions">
+            <button type="button" className="btn btn--ghost" onClick={closeForm}>
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn--primary">
+              {editingId ? 'Guardar cambios' : 'Guardar tarea'}
+            </button>
+          </div>
+        </form>
+      </FormSheet>
     </section>
   )
 }

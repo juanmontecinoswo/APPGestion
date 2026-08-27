@@ -1,7 +1,8 @@
 import type { FormEvent } from 'react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Importance, Recurrence, WorkItem, WorkStatus } from '../types'
 import { createWorkItem, daysInMonth } from '../lib/storage'
+import { AddIconButton, FormSheet } from './FormSheet'
 
 interface Props {
   monthKey: string
@@ -35,6 +36,7 @@ export function WorkPanel({
   onUpdate,
   onRemove,
 }: Props) {
+  const [open, setOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [project, setProject] = useState('')
   const [notes, setNotes] = useState('')
@@ -43,6 +45,7 @@ export function WorkPanel({
   const [recurrence, setRecurrence] = useState<Recurrence>('fija')
   const [dueDay, setDueDay] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const firstFieldRef = useRef<HTMLInputElement>(null)
 
   const maxDay = daysInMonth(monthKey)
   const sorted = [...workItems].sort((a, b) => {
@@ -51,8 +54,18 @@ export function WorkPanel({
       pendiente: 1,
       hecho: 2,
     }
-    return order[a.status] - order[b.status] || (a.dueDay ?? 99) - (b.dueDay ?? 99)
+    return (
+      order[a.status] - order[b.status] ||
+      (a.dueDay ?? 99) - (b.dueDay ?? 99)
+    )
   })
+
+  useEffect(() => {
+    if (open) {
+      const timer = window.setTimeout(() => firstFieldRef.current?.focus(), 40)
+      return () => window.clearTimeout(timer)
+    }
+  }, [open])
 
   function resetForm() {
     setTitle('')
@@ -65,6 +78,16 @@ export function WorkPanel({
     setEditingId(null)
   }
 
+  function closeForm() {
+    setOpen(false)
+    resetForm()
+  }
+
+  function openCreate() {
+    resetForm()
+    setOpen(true)
+  }
+
   function startEdit(item: WorkItem) {
     setEditingId(item.id)
     setTitle(item.title)
@@ -74,6 +97,7 @@ export function WorkPanel({
     setStatus(item.status)
     setRecurrence(item.recurrence)
     setDueDay(item.dueDay != null ? String(item.dueDay) : '')
+    setOpen(true)
   }
 
   function handleSubmit(e: FormEvent) {
@@ -96,12 +120,12 @@ export function WorkPanel({
     } else {
       onAdd(createWorkItem(payload))
     }
-    resetForm()
+    closeForm()
   }
 
   return (
     <section className="panel" aria-labelledby="work-title">
-      <header className="panel__head">
+      <header className="panel__head panel__head--row">
         <div>
           <h2 id="work-title">Trabajo</h2>
           <p>
@@ -109,94 +133,8 @@ export function WorkPanel({
             cada uno.
           </p>
         </div>
+        <AddIconButton label="Añadir trabajo" onClick={openCreate} />
       </header>
-
-      <form className="form" onSubmit={handleSubmit}>
-        <div className="form__row">
-          <label>
-            Encargo
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ej. Entregar informe"
-              required
-            />
-          </label>
-          <label>
-            Proyecto / cliente
-            <input
-              value={project}
-              onChange={(e) => setProject(e.target.value)}
-              placeholder="Ej. Cliente Norte"
-            />
-          </label>
-        </div>
-        <div className="form__row form__row--3">
-          <label>
-            Importancia
-            <select
-              value={importance}
-              onChange={(e) => setImportance(e.target.value as Importance)}
-            >
-              <option value="alta">Alta</option>
-              <option value="media">Media</option>
-              <option value="baja">Baja</option>
-            </select>
-          </label>
-          <label>
-            Estado
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as WorkStatus)}
-            >
-              <option value="pendiente">Pendiente</option>
-              <option value="en_curso">En curso</option>
-              <option value="hecho">Hecho</option>
-            </select>
-          </label>
-          <label>
-            Tipo
-            <select
-              value={recurrence}
-              onChange={(e) => setRecurrence(e.target.value as Recurrence)}
-            >
-              <option value="fija">Fija (este mes)</option>
-              <option value="mensual">Mensual</option>
-            </select>
-          </label>
-        </div>
-        <div className="form__row">
-          <label>
-            Día límite
-            <input
-              type="number"
-              min={1}
-              max={maxDay}
-              value={dueDay}
-              onChange={(e) => setDueDay(e.target.value)}
-              placeholder="—"
-            />
-          </label>
-          <label>
-            Notas
-            <input
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Opcional"
-            />
-          </label>
-        </div>
-        <div className="form__actions">
-          {editingId && (
-            <button type="button" className="btn btn--ghost" onClick={resetForm}>
-              Cancelar
-            </button>
-          )}
-          <button type="submit" className="btn btn--primary">
-            {editingId ? 'Guardar trabajo' : 'Añadir trabajo'}
-          </button>
-        </div>
-      </form>
 
       <ul className="list">
         {sorted.length === 0 && (
@@ -261,6 +199,99 @@ export function WorkPanel({
           </li>
         ))}
       </ul>
+
+      <FormSheet
+        open={open}
+        title={editingId ? 'Editar trabajo' : 'Nuevo trabajo'}
+        description="Completa el encargo y su estado."
+        onClose={closeForm}
+      >
+        <form className="form form--sheet" onSubmit={handleSubmit}>
+          <div className="form__row">
+            <label>
+              Encargo
+              <input
+                ref={firstFieldRef}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ej. Entregar informe"
+                required
+              />
+            </label>
+            <label>
+              Proyecto / cliente
+              <input
+                value={project}
+                onChange={(e) => setProject(e.target.value)}
+                placeholder="Ej. Cliente Norte"
+              />
+            </label>
+          </div>
+          <div className="form__row form__row--3">
+            <label>
+              Importancia
+              <select
+                value={importance}
+                onChange={(e) => setImportance(e.target.value as Importance)}
+              >
+                <option value="alta">Alta</option>
+                <option value="media">Media</option>
+                <option value="baja">Baja</option>
+              </select>
+            </label>
+            <label>
+              Estado
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as WorkStatus)}
+              >
+                <option value="pendiente">Pendiente</option>
+                <option value="en_curso">En curso</option>
+                <option value="hecho">Hecho</option>
+              </select>
+            </label>
+            <label>
+              Tipo
+              <select
+                value={recurrence}
+                onChange={(e) => setRecurrence(e.target.value as Recurrence)}
+              >
+                <option value="fija">Fija (este mes)</option>
+                <option value="mensual">Mensual</option>
+              </select>
+            </label>
+          </div>
+          <div className="form__row">
+            <label>
+              Día límite
+              <input
+                type="number"
+                min={1}
+                max={maxDay}
+                value={dueDay}
+                onChange={(e) => setDueDay(e.target.value)}
+                placeholder="—"
+              />
+            </label>
+            <label>
+              Notas
+              <input
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Opcional"
+              />
+            </label>
+          </div>
+          <div className="form__actions">
+            <button type="button" className="btn btn--ghost" onClick={closeForm}>
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn--primary">
+              {editingId ? 'Guardar cambios' : 'Guardar trabajo'}
+            </button>
+          </div>
+        </form>
+      </FormSheet>
     </section>
   )
 }
