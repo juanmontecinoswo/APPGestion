@@ -1,25 +1,22 @@
 import { useEffect, useState } from 'react'
 import type { ViewId } from './types'
+import { MENU_ITEMS } from './types'
 import {
   formatMonthLabel,
   monthKeyFromDate,
   shiftMonth,
 } from './lib/storage'
 import { useAppStore } from './hooks/useAppStore'
-import { SummaryPanel } from './components/SummaryPanel'
+import { DashboardPanel } from './components/DashboardPanel'
 import { ExpensesPanel } from './components/ExpensesPanel'
 import { TasksPanel } from './components/TasksPanel'
+import { RemindersPanel } from './components/RemindersPanel'
+import { WorkPanel } from './components/WorkPanel'
 import './App.css'
-
-const NAV: { id: ViewId; label: string }[] = [
-  { id: 'resumen', label: 'Resumen' },
-  { id: 'gastos', label: 'Gastos' },
-  { id: 'tareas', label: 'Tareas' },
-]
 
 export default function App() {
   const [monthKey, setMonthKey] = useState(() => monthKeyFromDate())
-  const [view, setView] = useState<ViewId>('resumen')
+  const [view, setView] = useState<ViewId>('dashboard')
   const [ready, setReady] = useState(false)
 
   const store = useAppStore(monthKey)
@@ -37,10 +34,10 @@ export default function App() {
       <header className="hero">
         <div className="hero__brand">
           <p className="brand">Mesura</p>
-          <h1>Gastos y tareas, mes a mes</h1>
+          <h1>Dashboard del mes</h1>
           <p className="hero__lead">
-            Organiza tu mes: controla gastos y prioriza tareas fijas o
-            mensuales según su importancia.
+            Gestiona gastos en CLP, tareas, recordatorios y trabajo desde un
+            solo panel.
           </p>
         </div>
 
@@ -75,8 +72,16 @@ export default function App() {
         </div>
       </header>
 
-      <nav className="tabs" aria-label="Secciones">
-        {NAV.map((item) => (
+      <nav className="tabs" aria-label="Menús principales">
+        <button
+          type="button"
+          className={`tabs__btn${view === 'dashboard' ? ' is-active' : ''}`}
+          aria-current={view === 'dashboard' ? 'page' : undefined}
+          onClick={() => setView('dashboard')}
+        >
+          Dashboard
+        </button>
+        {MENU_ITEMS.map((item) => (
           <button
             key={item.id}
             type="button"
@@ -90,13 +95,14 @@ export default function App() {
       </nav>
 
       <main className="main">
-        {view === 'resumen' && (
-          <SummaryPanel
+        {view === 'dashboard' && (
+          <DashboardPanel
             monthLabel={monthLabel}
             tasks={store.monthTasks}
             expenses={store.monthExpenses}
-            onGoTasks={() => setView('tareas')}
-            onGoExpenses={() => setView('gastos')}
+            reminders={store.monthReminders}
+            workItems={store.monthWork}
+            onOpen={setView}
           />
         )}
         {view === 'gastos' && (
@@ -118,12 +124,31 @@ export default function App() {
             onToggle={store.toggleTask}
           />
         )}
+        {view === 'recordatorios' && (
+          <RemindersPanel
+            monthKey={monthKey}
+            reminders={store.monthReminders}
+            onAdd={store.addReminder}
+            onUpdate={store.updateReminder}
+            onRemove={store.removeReminder}
+            onToggle={store.toggleReminder}
+          />
+        )}
+        {view === 'trabajo' && (
+          <WorkPanel
+            monthKey={monthKey}
+            workItems={store.monthWork}
+            onAdd={store.addWorkItem}
+            onUpdate={store.updateWorkItem}
+            onRemove={store.removeWorkItem}
+          />
+        )}
       </main>
 
       <footer className="footer">
         <p>
-          Los datos se guardan en este navegador. Cambia de mes para ver o
-          generar la copia mensual de tareas y gastos recurrentes.
+          Montos en pesos chilenos (CLP). Los datos se guardan en este
+          navegador.
         </p>
       </footer>
     </div>

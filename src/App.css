@@ -539,6 +539,98 @@ em {
   margin-bottom: 1.1rem;
 }
 
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.95rem;
+}
+
+.dash-card {
+  display: grid;
+  gap: 0.55rem;
+  text-align: left;
+  padding: 1.25rem 1.2rem 1.15rem;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.85), rgba(231, 239, 232, 0.55));
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.dash-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(45, 106, 79, 0.35);
+  box-shadow: 0 14px 30px rgba(20, 32, 26, 0.1);
+}
+
+.dash-card__label {
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.dash-card__stat {
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 3.4vw, 1.85rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--leaf);
+  line-height: 1.15;
+}
+
+.dash-card__blurb {
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.dash-card__cta {
+  margin-top: 0.35rem;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--leaf-mid);
+}
+
+.dash-card--gastos {
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.9), rgba(240, 213, 196, 0.35));
+}
+
+.dash-card--tareas {
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.9), rgba(220, 232, 223, 0.65));
+}
+
+.dash-card--recordatorios {
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.9), rgba(232, 226, 210, 0.7));
+}
+
+.dash-card--trabajo {
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.9), rgba(214, 228, 220, 0.75));
+}
+
+.chip--pendiente {
+  background: rgba(107, 122, 113, 0.15);
+  color: var(--muted);
+}
+
+.chip--en_curso {
+  background: rgba(64, 145, 108, 0.18);
+  color: var(--leaf-mid);
+}
+
+.chip--hecho {
+  background: rgba(27, 67, 50, 0.12);
+  color: var(--leaf);
+}
+
 .stat {
   padding: 1.1rem 1.15rem;
   border-radius: 16px;
@@ -710,7 +802,8 @@ em {
   .form__row,
   .form__row--3,
   .summary-grid,
-  .summary-cols {
+  .summary-cols,
+  .dash-grid {
     grid-template-columns: 1fr;
   }
 

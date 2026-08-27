@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react'
-import type { AppState, Expense, Task } from '../types'
+import type {
+  AppState,
+  Expense,
+  Reminder,
+  Task,
+  WorkItem,
+} from '../types'
 import {
   ensureMonthlyExpenses,
+  ensureMonthlyReminders,
   ensureMonthlyTasks,
+  ensureMonthlyWork,
   loadState,
   saveState,
 } from '../lib/storage'
@@ -14,8 +22,17 @@ export function useAppStore(activeMonth: string) {
     setState((prev) => {
       const tasks = ensureMonthlyTasks(prev.tasks, activeMonth)
       const expenses = ensureMonthlyExpenses(prev.expenses, activeMonth)
-      if (tasks === prev.tasks && expenses === prev.expenses) return prev
-      const next = { tasks, expenses }
+      const reminders = ensureMonthlyReminders(prev.reminders, activeMonth)
+      const workItems = ensureMonthlyWork(prev.workItems, activeMonth)
+      if (
+        tasks === prev.tasks &&
+        expenses === prev.expenses &&
+        reminders === prev.reminders &&
+        workItems === prev.workItems
+      ) {
+        return prev
+      }
+      const next = { tasks, expenses, reminders, workItems }
       saveState(next)
       return next
     })
@@ -27,6 +44,10 @@ export function useAppStore(activeMonth: string) {
 
   const monthTasks = state.tasks.filter((t) => t.monthKey === activeMonth)
   const monthExpenses = state.expenses.filter((e) => e.monthKey === activeMonth)
+  const monthReminders = state.reminders.filter(
+    (r) => r.monthKey === activeMonth,
+  )
+  const monthWork = state.workItems.filter((w) => w.monthKey === activeMonth)
 
   function addTask(task: Task) {
     setState((s) => ({ ...s, tasks: [task, ...s.tasks] }))
@@ -72,9 +93,60 @@ export function useAppStore(activeMonth: string) {
     }))
   }
 
+  function addReminder(reminder: Reminder) {
+    setState((s) => ({ ...s, reminders: [reminder, ...s.reminders] }))
+  }
+
+  function updateReminder(id: string, patch: Partial<Reminder>) {
+    setState((s) => ({
+      ...s,
+      reminders: s.reminders.map((r) =>
+        r.id === id ? { ...r, ...patch } : r,
+      ),
+    }))
+  }
+
+  function removeReminder(id: string) {
+    setState((s) => ({
+      ...s,
+      reminders: s.reminders.filter((r) => r.id !== id),
+    }))
+  }
+
+  function toggleReminder(id: string) {
+    setState((s) => ({
+      ...s,
+      reminders: s.reminders.map((r) =>
+        r.id === id ? { ...r, done: !r.done } : r,
+      ),
+    }))
+  }
+
+  function addWorkItem(item: WorkItem) {
+    setState((s) => ({ ...s, workItems: [item, ...s.workItems] }))
+  }
+
+  function updateWorkItem(id: string, patch: Partial<WorkItem>) {
+    setState((s) => ({
+      ...s,
+      workItems: s.workItems.map((w) =>
+        w.id === id ? { ...w, ...patch } : w,
+      ),
+    }))
+  }
+
+  function removeWorkItem(id: string) {
+    setState((s) => ({
+      ...s,
+      workItems: s.workItems.filter((w) => w.id !== id),
+    }))
+  }
+
   return {
     monthTasks,
     monthExpenses,
+    monthReminders,
+    monthWork,
     addTask,
     updateTask,
     removeTask,
@@ -82,5 +154,12 @@ export function useAppStore(activeMonth: string) {
     addExpense,
     updateExpense,
     removeExpense,
+    addReminder,
+    updateReminder,
+    removeReminder,
+    toggleReminder,
+    addWorkItem,
+    updateWorkItem,
+    removeWorkItem,
   }
 }

@@ -1,6 +1,12 @@
-import type { AppState, Expense, Task } from '../types'
+import type {
+  AppState,
+  Expense,
+  Reminder,
+  Task,
+  WorkItem,
+} from '../types'
 
-const STORAGE_KEY = 'mesura-v1'
+const STORAGE_KEY = 'mesura-v2'
 
 function uid(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
@@ -20,7 +26,10 @@ export function parseMonthKey(key: string): { year: number; month: number } {
 export function formatMonthLabel(key: string): string {
   const { year, month } = parseMonthKey(key)
   const date = new Date(year, month - 1, 1)
-  const label = date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+  const label = date.toLocaleDateString('es-CL', {
+    month: 'long',
+    year: 'numeric',
+  })
   return label.charAt(0).toUpperCase() + label.slice(1)
 }
 
@@ -36,11 +45,11 @@ export function daysInMonth(key: string): number {
 }
 
 export function formatMoney(amount: number): string {
-  return new Intl.NumberFormat('es-ES', {
+  return new Intl.NumberFormat('es-CL', {
     style: 'currency',
-    currency: 'EUR',
-    maximumFractionDigits: 2,
-  }).format(amount)
+    currency: 'CLP',
+    maximumFractionDigits: 0,
+  }).format(Math.round(amount))
 }
 
 function seedState(monthKey: string): AppState {
@@ -48,7 +57,7 @@ function seedState(monthKey: string): AppState {
   const tasks: Task[] = [
     {
       id: uid(),
-      title: 'Revisar extracto bancario',
+      title: 'Revisar cartola bancaria',
       notes: 'Comprobar cargos duplicados',
       importance: 'alta',
       recurrence: 'mensual',
@@ -59,7 +68,7 @@ function seedState(monthKey: string): AppState {
     },
     {
       id: uid(),
-      title: 'Pagar alquiler',
+      title: 'Pagar arriendo',
       notes: '',
       importance: 'alta',
       recurrence: 'fija',
@@ -84,8 +93,8 @@ function seedState(monthKey: string): AppState {
   const expenses: Expense[] = [
     {
       id: uid(),
-      title: 'Alquiler',
-      amount: 750,
+      title: 'Arriendo',
+      amount: 450000,
       category: 'Vivienda',
       kind: 'fijo',
       monthKey,
@@ -96,7 +105,7 @@ function seedState(monthKey: string): AppState {
     {
       id: uid(),
       title: 'Supermercado',
-      amount: 86.4,
+      amount: 78500,
       category: 'Comida',
       kind: 'unico',
       monthKey,
@@ -107,7 +116,7 @@ function seedState(monthKey: string): AppState {
     {
       id: uid(),
       title: 'Internet + móvil',
-      amount: 42,
+      amount: 35990,
       category: 'Servicios',
       kind: 'mensual',
       monthKey,
@@ -117,7 +126,70 @@ function seedState(monthKey: string): AppState {
     },
   ]
 
-  return { tasks, expenses }
+  const reminders: Reminder[] = [
+    {
+      id: uid(),
+      title: 'Pagar tarjeta de crédito',
+      notes: 'Antes de la fecha de facturación',
+      importance: 'alta',
+      recurrence: 'mensual',
+      monthKey,
+      dueDay: 12,
+      time: '09:00',
+      done: false,
+      createdAt: now,
+    },
+    {
+      id: uid(),
+      title: 'Reunión familiar',
+      notes: '',
+      importance: 'media',
+      recurrence: 'fija',
+      monthKey,
+      dueDay: 20,
+      time: '19:30',
+      done: false,
+      createdAt: now,
+    },
+  ]
+
+  const workItems: WorkItem[] = [
+    {
+      id: uid(),
+      title: 'Enviar informe semanal',
+      project: 'Equipo interno',
+      notes: 'Resumen de avances',
+      importance: 'alta',
+      status: 'pendiente',
+      recurrence: 'mensual',
+      monthKey,
+      dueDay: 7,
+      createdAt: now,
+    },
+    {
+      id: uid(),
+      title: 'Actualizar propuesta cliente',
+      project: 'Cliente Norte',
+      notes: '',
+      importance: 'media',
+      status: 'en_curso',
+      recurrence: 'fija',
+      monthKey,
+      dueDay: 15,
+      createdAt: now,
+    },
+  ]
+
+  return { tasks, expenses, reminders, workItems }
+}
+
+function normalizeState(raw: Partial<AppState>): AppState {
+  return {
+    tasks: raw.tasks ?? [],
+    expenses: raw.expenses ?? [],
+    reminders: raw.reminders ?? [],
+    workItems: raw.workItems ?? [],
+  }
 }
 
 export function loadState(): AppState {
@@ -128,8 +200,10 @@ export function loadState(): AppState {
       saveState(initial)
       return initial
     }
-    const parsed = JSON.parse(raw) as AppState
-    if (!parsed.tasks || !parsed.expenses) throw new Error('invalid')
+    const parsed = normalizeState(JSON.parse(raw) as Partial<AppState>)
+    if (!Array.isArray(parsed.tasks) || !Array.isArray(parsed.expenses)) {
+      throw new Error('invalid')
+    }
     return parsed
   } catch {
     const fallback = seedState(monthKeyFromDate())
@@ -163,25 +237,62 @@ export function createExpense(
   }
 }
 
-/** Carry monthly tasks into a month that has none yet */
+export function createReminder(
+  partial: Omit<Reminder, 'id' | 'createdAt' | 'done'>,
+): Reminder {
+  return {
+    ...partial,
+    id: uid(),
+    done: false,
+    createdAt: new Date().toISOString(),
+  }
+}
+
+export function createWorkItem(
+  partial: Omit<WorkItem, 'id' | 'createdAt'>,
+): WorkItem {
+  return {
+    ...partial,
+    id: uid(),
+    createdAt: new Date().toISOString(),
+  }
+}
+
+function cloneRecurringByMonth<T extends { monthKey: string; recurrence?: RecurrenceKind; kind?: string }>(
+  items: T[],
+  targetMonth: string,
+  isRecurring: (item: T) => boolean,
+  clone: (item: T) => T,
+): T[] {
+  const hasAnyForMonth = items.some((item) => item.monthKey === targetMonth)
+  if (hasAnyForMonth) return items
+
+  const recurring = items.filter(isRecurring)
+  if (recurring.length === 0) return items
+
+  const months = [...new Set(recurring.map((item) => item.monthKey))].sort()
+  const sourceMonth =
+    [...months].reverse().find((m) => m < targetMonth) ??
+    months[months.length - 1]
+
+  const clones = recurring
+    .filter((item) => item.monthKey === sourceMonth)
+    .map(clone)
+
+  return [...items, ...clones]
+}
+
+type RecurrenceKind = 'fija' | 'mensual'
+
 export function ensureMonthlyTasks(
   tasks: Task[],
   targetMonth: string,
 ): Task[] {
-  const hasAnyForMonth = tasks.some((t) => t.monthKey === targetMonth)
-  if (hasAnyForMonth) return tasks
-
-  const templates = tasks.filter((t) => t.recurrence === 'mensual')
-  if (templates.length === 0) return tasks
-
-  // Prefer templates from the nearest previous month that has monthly tasks
-  const months = [...new Set(templates.map((t) => t.monthKey))].sort()
-  const sourceMonth =
-    [...months].reverse().find((m) => m < targetMonth) ?? months[months.length - 1]
-
-  const clones = templates
-    .filter((t) => t.monthKey === sourceMonth)
-    .map((t) =>
+  return cloneRecurringByMonth(
+    tasks,
+    targetMonth,
+    (t) => t.recurrence === 'mensual',
+    (t) =>
       createTask({
         title: t.title,
         notes: t.notes,
@@ -190,31 +301,18 @@ export function ensureMonthlyTasks(
         monthKey: targetMonth,
         dueDay: t.dueDay,
       }),
-    )
-
-  return [...tasks, ...clones]
+  )
 }
 
-/** Carry fixed/monthly expenses into empty months */
 export function ensureMonthlyExpenses(
   expenses: Expense[],
   targetMonth: string,
 ): Expense[] {
-  const hasAnyForMonth = expenses.some((e) => e.monthKey === targetMonth)
-  if (hasAnyForMonth) return expenses
-
-  const recurring = expenses.filter(
+  return cloneRecurringByMonth(
+    expenses,
+    targetMonth,
     (e) => e.kind === 'fijo' || e.kind === 'mensual',
-  )
-  if (recurring.length === 0) return expenses
-
-  const months = [...new Set(recurring.map((e) => e.monthKey))].sort()
-  const sourceMonth =
-    [...months].reverse().find((m) => m < targetMonth) ?? months[months.length - 1]
-
-  const clones = recurring
-    .filter((e) => e.monthKey === sourceMonth)
-    .map((e) =>
+    (e) =>
       createExpense({
         title: e.title,
         amount: e.amount,
@@ -224,7 +322,48 @@ export function ensureMonthlyExpenses(
         day: e.day,
         notes: e.notes,
       }),
-    )
+  )
+}
 
-  return [...expenses, ...clones]
+export function ensureMonthlyReminders(
+  reminders: Reminder[],
+  targetMonth: string,
+): Reminder[] {
+  return cloneRecurringByMonth(
+    reminders,
+    targetMonth,
+    (r) => r.recurrence === 'mensual',
+    (r) =>
+      createReminder({
+        title: r.title,
+        notes: r.notes,
+        importance: r.importance,
+        recurrence: 'mensual',
+        monthKey: targetMonth,
+        dueDay: r.dueDay,
+        time: r.time,
+      }),
+  )
+}
+
+export function ensureMonthlyWork(
+  workItems: WorkItem[],
+  targetMonth: string,
+): WorkItem[] {
+  return cloneRecurringByMonth(
+    workItems,
+    targetMonth,
+    (w) => w.recurrence === 'mensual',
+    (w) =>
+      createWorkItem({
+        title: w.title,
+        project: w.project,
+        notes: w.notes,
+        importance: w.importance,
+        status: 'pendiente',
+        recurrence: 'mensual',
+        monthKey: targetMonth,
+        dueDay: w.dueDay,
+      }),
+  )
 }

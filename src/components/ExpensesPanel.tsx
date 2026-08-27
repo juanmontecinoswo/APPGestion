@@ -2,7 +2,7 @@ import type { FormEvent } from 'react'
 import { useState } from 'react'
 import type { Expense, ExpenseKind } from '../types'
 import { EXPENSE_CATEGORIES } from '../types'
-import { createExpense, daysInMonth } from '../lib/storage'
+import { createExpense, daysInMonth, formatMoney } from '../lib/storage'
 
 interface Props {
   monthKey: string
@@ -105,12 +105,12 @@ export function ExpensesPanel({
             />
           </label>
           <label>
-            Importe (€)
+            Importe (CLP)
             <input
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              inputMode="decimal"
-              placeholder="0,00"
+              inputMode="numeric"
+              placeholder="450000"
               required
             />
           </label>
@@ -190,10 +190,7 @@ export function ExpensesPanel({
               </div>
             </div>
             <div className="list__side">
-              <span className="amount">{expense.amount.toLocaleString('es-ES', {
-                style: 'currency',
-                currency: 'EUR',
-              })}</span>
+              <span className="amount">{formatMoney(expense.amount)}</span>
               <div className="list__ops">
                 <button
                   type="button"

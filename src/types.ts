@@ -1,8 +1,14 @@
 export type Importance = 'alta' | 'media' | 'baja'
 export type Recurrence = 'fija' | 'mensual'
 export type ExpenseKind = 'unico' | 'fijo' | 'mensual'
+export type WorkStatus = 'pendiente' | 'en_curso' | 'hecho'
 
-export type ViewId = 'resumen' | 'gastos' | 'tareas'
+export type ViewId =
+  | 'dashboard'
+  | 'gastos'
+  | 'tareas'
+  | 'recordatorios'
+  | 'trabajo'
 
 export interface Task {
   id: string
@@ -10,7 +16,7 @@ export interface Task {
   notes: string
   importance: Importance
   recurrence: Recurrence
-  /** YYYY-MM for the month this task belongs to (mensual regenerates) */
+  /** YYYY-MM */
   monthKey: string
   dueDay: number | null
   done: boolean
@@ -30,9 +36,39 @@ export interface Expense {
   createdAt: string
 }
 
+export interface Reminder {
+  id: string
+  title: string
+  notes: string
+  importance: Importance
+  recurrence: Recurrence
+  /** YYYY-MM */
+  monthKey: string
+  dueDay: number | null
+  time: string
+  done: boolean
+  createdAt: string
+}
+
+export interface WorkItem {
+  id: string
+  title: string
+  project: string
+  notes: string
+  importance: Importance
+  status: WorkStatus
+  recurrence: Recurrence
+  /** YYYY-MM */
+  monthKey: string
+  dueDay: number | null
+  createdAt: string
+}
+
 export interface AppState {
   tasks: Task[]
   expenses: Expense[]
+  reminders: Reminder[]
+  workItems: WorkItem[]
 }
 
 export const EXPENSE_CATEGORIES = [
@@ -45,3 +81,30 @@ export const EXPENSE_CATEGORIES = [
   'Suscripciones',
   'Otros',
 ] as const
+
+export const MENU_ITEMS: {
+  id: Exclude<ViewId, 'dashboard'>
+  label: string
+  blurb: string
+}[] = [
+  {
+    id: 'gastos',
+    label: 'Gastos',
+    blurb: 'Controla cargos únicos, fijos y mensuales en pesos chilenos.',
+  },
+  {
+    id: 'tareas',
+    label: 'Tareas',
+    blurb: 'Organiza pendientes con importancia alta, media o baja.',
+  },
+  {
+    id: 'recordatorios',
+    label: 'Recordatorios',
+    blurb: 'Avisos del mes con día y hora para no olvidar nada.',
+  },
+  {
+    id: 'trabajo',
+    label: 'Trabajo',
+    blurb: 'Seguimiento de encargos, proyectos y estados laborales.',
+  },
+]
