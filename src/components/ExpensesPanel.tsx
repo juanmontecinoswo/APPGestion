@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Expense, ExpenseKind } from '../types'
 import { EXPENSE_CATEGORIES } from '../types'
 import { createExpense, daysInMonth, formatMoney } from '../lib/storage'
@@ -25,6 +25,7 @@ export function ExpensesPanel({
   onUpdate,
   onRemove,
 }: Props) {
+  const [open, setOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState<string>(EXPENSE_CATEGORIES[0])
@@ -32,6 +33,7 @@ export function ExpensesPanel({
   const [day, setDay] = useState('')
   const [notes, setNotes] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const firstFieldRef = useRef<HTMLInputElement>(null)
 
   const maxDay = daysInMonth(monthKey)
   const sorted = [...expenses].sort((a, b) => {
@@ -39,6 +41,19 @@ export function ExpensesPanel({
     const db = b.day ?? 99
     return da - db || b.amount - a.amount
   })
+
+  useEffect(() => {
+    if (!open) return
+    const timer = window.setTimeout(() => firstFieldRef.current?.focus(), 40)
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') closeForm()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.clearTimeout(timer)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [open])
 
   function resetForm() {
     setTitle('')
@@ -50,6 +65,16 @@ export function ExpensesPanel({
     setEditingId(null)
   }
 
+  function closeForm() {
+    setOpen(false)
+    resetForm()
+  }
+
+  function openCreate() {
+    resetForm()
+    setOpen(true)
+  }
+
   function startEdit(expense: Expense) {
     setEditingId(expense.id)
     setTitle(expense.title)
@@ -58,11 +83,14 @@ export function ExpensesPanel({
     setKind(expense.kind)
     setDay(expense.day != null ? String(expense.day) : '')
     setNotes(expense.notes)
+    setOpen(true)
   }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    const parsedAmount = Number(amount.replace(',', '.'))
+    const parsedAmount = Math.round(
+      Number(amount.replace(/[.\s]/g, '').replace(',', '.')),
+    )
     if (!title.trim() || Number.isNaN(parsedAmount) || parsedAmount < 0) return
 
     const dayNum = day ? Math.min(Math.max(1, Number(day)), maxDay) : null
@@ -81,96 +109,20 @@ export function ExpensesPanel({
     } else {
       onAdd(createExpense(payload))
     }
-    resetForm()
+    closeForm()
   }
 
   return (
     <section className="panel" aria-labelledby="gastos-title">
-      <header className="panel__head">
+      <header className="panel__head panel__head--row">
         <div>
           <h2 id="gastos-title">Gastos del mes</h2>
           <p>Registra cargos únicos, fijos o que se repiten cada mes.</p>
         </div>
+        <button type="button" className="btn btn--primary" onClick={openCreate}>
+          Añadir gasto
+        </button>
       </header>
-
-      <form className="form" onSubmit={handleSubmit}>
-        <div className="form__row">
-          <label>
-            Concepto
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ej. Supermercado"
-              required
-            />
-          </label>
-          <label>
-            Importe (CLP)
-            <input
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              inputMode="numeric"
-              placeholder="450000"
-              required
-            />
-          </label>
-        </div>
-        <div className="form__row form__row--3">
-          <label>
-            Categoría
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              {EXPENSE_CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Tipo
-            <select
-              value={kind}
-              onChange={(e) => setKind(e.target.value as ExpenseKind)}
-            >
-              <option value="unico">Único</option>
-              <option value="fijo">Fijo</option>
-              <option value="mensual">Mensual</option>
-            </select>
-          </label>
-          <label>
-            Día
-            <input
-              type="number"
-              min={1}
-              max={maxDay}
-              value={day}
-              onChange={(e) => setDay(e.target.value)}
-              placeholder="—"
-            />
-          </label>
-        </div>
-        <label>
-          Notas
-          <input
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Opcional"
-          />
-        </label>
-        <div className="form__actions">
-          {editingId && (
-            <button type="button" className="btn btn--ghost" onClick={resetForm}>
-              Cancelar
-            </button>
-          )}
-          <button type="submit" className="btn btn--primary">
-            {editingId ? 'Guardar gasto' : 'Añadir gasto'}
-          </button>
-        </div>
-      </form>
 
       <ul className="list">
         {sorted.length === 0 && (
@@ -211,6 +163,117 @@ export function ExpensesPanel({
           </li>
         ))}
       </ul>
+
+      {open && (
+        <div className="sheet" role="presentation" onClick={closeForm}>
+          <div
+            className="sheet__panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="gasto-form-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <header className="sheet__head">
+              <div>
+                <h3 id="gasto-form-title">
+                  {editingId ? 'Editar gasto' : 'Nuevo gasto'}
+                </h3>
+                <p>Completa los datos y guarda el cargo.</p>
+              </div>
+              <button
+                type="button"
+                className="btn btn--icon"
+                aria-label="Cerrar"
+                onClick={closeForm}
+              >
+                ×
+              </button>
+            </header>
+
+            <form className="form form--sheet" onSubmit={handleSubmit}>
+              <div className="form__row">
+                <label>
+                  Concepto
+                  <input
+                    ref={firstFieldRef}
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Ej. Supermercado"
+                    required
+                  />
+                </label>
+                <label>
+                  Importe (CLP)
+                  <input
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    inputMode="numeric"
+                    placeholder="450000"
+                    required
+                  />
+                </label>
+              </div>
+              <div className="form__row form__row--3">
+                <label>
+                  Categoría
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                  >
+                    {EXPENSE_CATEGORIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Tipo
+                  <select
+                    value={kind}
+                    onChange={(e) => setKind(e.target.value as ExpenseKind)}
+                  >
+                    <option value="unico">Único</option>
+                    <option value="fijo">Fijo</option>
+                    <option value="mensual">Mensual</option>
+                  </select>
+                </label>
+                <label>
+                  Día
+                  <input
+                    type="number"
+                    min={1}
+                    max={maxDay}
+                    value={day}
+                    onChange={(e) => setDay(e.target.value)}
+                    placeholder="—"
+                  />
+                </label>
+              </div>
+              <label>
+                Notas
+                <input
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Opcional"
+                />
+              </label>
+              <div className="form__actions">
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  onClick={closeForm}
+                >
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn--primary">
+                  {editingId ? 'Guardar cambios' : 'Guardar gasto'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </section>
   )
 }
