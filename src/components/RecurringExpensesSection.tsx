@@ -14,6 +14,7 @@ import { AddIconButton, FormSheet } from './FormSheet'
 interface Props {
   monthKey: string
   recurring: RecurringExpense[]
+  embedded?: boolean
   onAdd: (item: RecurringExpense) => void
   onUpdate: (id: string, patch: Partial<RecurringExpense>) => void
   onRemove: (id: string) => void
@@ -27,6 +28,7 @@ const KIND_LABEL: Record<RecurringKind, string> = {
 export function RecurringExpensesSection({
   monthKey,
   recurring,
+  embedded = false,
   onAdd,
   onUpdate,
   onRemove,
@@ -127,8 +129,8 @@ export function RecurringExpensesSection({
     closeForm()
   }
 
-  return (
-    <section className="panel panel--nested" aria-labelledby="recurring-title">
+  const content = (
+    <>
       <header className="panel__head panel__head--row">
         <div>
           <h3 id="recurring-title">Gastos fijos y mensuales</h3>
@@ -302,6 +304,16 @@ export function RecurringExpensesSection({
           </div>
         </form>
       </FormSheet>
+    </>
+  )
+
+  if (embedded) {
+    return <div className="recurring-block">{content}</div>
+  }
+
+  return (
+    <section className="panel panel--nested" aria-labelledby="recurring-title">
+      {content}
     </section>
   )
 }

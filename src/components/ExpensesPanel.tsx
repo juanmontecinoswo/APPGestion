@@ -6,6 +6,7 @@ import {
   createExpense,
   daysInMonth,
   formatMoney,
+  paidExpenseTotal,
   parseAmountInput,
 } from '../lib/storage'
 import { AddIconButton, FormSheet } from './FormSheet'
@@ -35,6 +36,12 @@ function amountLabel(expense: Expense): string {
   return 'Sin monto'
 }
 
+function sortByDay(a: Expense, b: Expense): number {
+  const da = a.day ?? 99
+  const db = b.day ?? 99
+  return da - db || a.title.localeCompare(b.title)
+}
+
 export function ExpensesPanel({
   monthKey,
   expenses,
@@ -46,6 +53,7 @@ export function ExpensesPanel({
   onUpdateRecurring,
   onRemoveRecurring,
 }: Props) {
+  const [allExpanded, setAllExpanded] = useState(true)
   const [open, setOpen] = useState(false)
   const [payOpen, setPayOpen] = useState(false)
   const [title, setTitle] = useState('')
@@ -61,12 +69,12 @@ export function ExpensesPanel({
 
   const maxDay = daysInMonth(monthKey)
   const payingExpense = expenses.find((e) => e.id === payingId)
-  const sorted = [...expenses].sort((a, b) => {
+  const unpaid = expenses.filter((e) => !e.paid).sort(sortByDay)
+  const allSorted = [...expenses].sort((a, b) => {
     if (a.paid !== b.paid) return a.paid ? 1 : -1
-    const da = a.day ?? 99
-    const db = b.day ?? 99
-    return da - db || (b.amount ?? 0) - (a.amount ?? 0)
+    return sortByDay(a, b)
   })
+  const paidTotal = paidExpenseTotal(expenses)
 
   useEffect(() => {
     if (open) {
@@ -171,196 +179,257 @@ export function ExpensesPanel({
   }
 
   return (
-    <>
-      <section className="panel" aria-labelledby="finanzas-title">
-        <header className="panel__head panel__head--row">
-          <div>
-            <h2 id="finanzas-title">Finanzas del mes</h2>
-            <p>
-              Cargos del mes con monto opcional. Al pagar, el valor se suma al
-              total mensual.
-            </p>
-          </div>
+    <div className="finanzas-stack">
+      <section className="panel panel--registry" aria-labelledby="all-expenses-title">
+        <header className="panel__head panel__head--collapse">
+          <button
+            type="button"
+            className="collapse-trigger"
+            aria-expanded={allExpanded}
+            aria-controls="all-expenses-body"
+            onClick={() => setAllExpanded((v) => !v)}
+          >
+            <span className="collapse-trigger__chevron" aria-hidden="true">
+              {allExpanded ? '▾' : '▸'}
+            </span>
+            <span className="collapse-trigger__text">
+              <strong id="all-expenses-title">Todos los gastos</strong>
+              <span>
+                {expenses.length} cargos · {recurring.length} recurrentes
+              </span>
+            </span>
+          </button>
           <AddIconButton label="Añadir cargo" onClick={openCreate} />
         </header>
 
-        <ul className="list">
-          {sorted.length === 0 && (
-            <li className="list__empty">Aún no hay cargos este mes.</li>
+        <div
+          id="all-expenses-body"
+          className={`collapse-body${allExpanded ? '' : ' is-collapsed'}`}
+          hidden={!allExpanded}
+        >
+          <p className="panel__hint">
+            Registro completo del mes. Puedes contraer esta ventana cuando no la
+            necesites.
+          </p>
+
+          <ul className="list">
+            {allSorted.length === 0 && (
+              <li className="list__empty">Aún no hay cargos este mes.</li>
+            )}
+            {allSorted.map((expense) => (
+              <li key={expense.id} className="list__item">
+                <div className="list__main">
+                  <div className="list__title-row">
+                    <strong>{expense.title}</strong>
+                    <span className="chip chip--kind">
+                      {KIND_LABEL[expense.kind]}
+                    </span>
+                    <span
+                      className={`chip chip--status chip--${expense.paid ? 'hecho' : 'pendiente'}`}
+                    >
+                      {expense.paid ? 'Pagado' : 'Por pagar'}
+                    </span>
+                  </div>
+                  <div className="list__meta">
+                    <span>{expense.category}</span>
+                    {expense.day != null && <span>Día {expense.day}</span>}
+                    {expense.notes && <span>{expense.notes}</span>}
+                  </div>
+                </div>
+                <div className="list__side">
+                  <span className="amount">{amountLabel(expense)}</span>
+                  <div className="list__ops">
+                    <button
+                      type="button"
+                      className="btn btn--tiny"
+                      onClick={() => startEdit(expense)}
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--tiny btn--danger"
+                      onClick={() => onRemove(expense.id)}
+                    >
+                      Borrar
+                    </button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <RecurringExpensesSection
+            embedded
+            monthKey={monthKey}
+            recurring={recurring}
+            onAdd={onAddRecurring}
+            onUpdate={onUpdateRecurring}
+            onRemove={onRemoveRecurring}
+          />
+        </div>
+      </section>
+
+      <section className="panel panel--payqueue" aria-labelledby="pay-title">
+        <header className="panel__head">
+          <h2 id="pay-title">Por pagar este mes</h2>
+          <p>
+            {unpaid.length === 0
+              ? 'No tienes cargos pendientes. Total pagado: ' +
+                formatMoney(paidTotal)
+              : `${unpaid.length} pendiente${unpaid.length === 1 ? '' : 's'} · Pagado: ${formatMoney(paidTotal)}`}
+          </p>
+        </header>
+
+        <ul className="list list--pay">
+          {unpaid.length === 0 && (
+            <li className="list__empty">Todo al día por ahora.</li>
           )}
-          {sorted.map((expense) => (
-            <li key={expense.id} className="list__item">
+          {unpaid.map((expense) => (
+            <li key={expense.id} className="list__item list__item--pay">
               <div className="list__main">
                 <div className="list__title-row">
                   <strong>{expense.title}</strong>
-                  <span className="chip chip--kind">{KIND_LABEL[expense.kind]}</span>
-                  <span
-                    className={`chip chip--status chip--${expense.paid ? 'hecho' : 'pendiente'}`}
-                  >
-                    {expense.paid ? 'Pagado' : 'Por pagar'}
+                  <span className="chip chip--kind">
+                    {KIND_LABEL[expense.kind]}
                   </span>
                 </div>
                 <div className="list__meta">
                   <span>{expense.category}</span>
                   {expense.day != null && <span>Día {expense.day}</span>}
-                  {expense.notes && <span>{expense.notes}</span>}
+                  {expense.amount != null ? (
+                    <span>Estimado {formatMoney(expense.amount)}</span>
+                  ) : (
+                    <span>Sin monto asignado</span>
+                  )}
                 </div>
               </div>
               <div className="list__side">
-                <span className="amount">{amountLabel(expense)}</span>
-                <div className="list__ops">
-                  {!expense.paid && (
-                    <button
-                      type="button"
-                      className="btn btn--tiny btn--pay"
-                      onClick={() => startPay(expense)}
-                    >
-                      Pagar
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="btn btn--tiny"
-                    onClick={() => startEdit(expense)}
-                  >
-                    Editar
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn--tiny btn--danger"
-                    onClick={() => onRemove(expense.id)}
-                  >
-                    Borrar
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="btn btn--primary btn--pay-main"
+                  onClick={() => startPay(expense)}
+                >
+                  Pagar
+                </button>
               </div>
             </li>
           ))}
         </ul>
+      </section>
 
-        <FormSheet
-          open={open}
-          title={editingId ? 'Editar cargo' : 'Nuevo cargo'}
-          description="El importe es opcional. Si lo ingresas, queda como estimado hasta pagar."
-          onClose={closeForm}
-        >
-          <form className="form form--sheet" onSubmit={handleSubmit}>
-            <div className="form__row">
-              <label>
-                Concepto
-                <input
-                  ref={firstFieldRef}
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Ej. Supermercado"
-                  required
-                />
-              </label>
-              <label>
-                {editingId && expenses.find((e) => e.id === editingId)?.paid
-                  ? 'Importe pagado (CLP)'
-                  : 'Importe estimado (CLP)'}
-                <input
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  inputMode="numeric"
-                  placeholder="Opcional"
-                  required={
-                    !!editingId && !!expenses.find((e) => e.id === editingId)?.paid
-                  }
-                />
-              </label>
-            </div>
-            <div className="form__row">
-              <label>
-                Categoría
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                >
-                  {EXPENSE_CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Día
-                <input
-                  type="number"
-                  min={1}
-                  max={maxDay}
-                  value={day}
-                  onChange={(e) => setDay(e.target.value)}
-                  placeholder="—"
-                />
-              </label>
-            </div>
+      <FormSheet
+        open={open}
+        title={editingId ? 'Editar cargo' : 'Nuevo cargo'}
+        description="El importe es opcional. Si lo ingresas, queda como estimado hasta pagar."
+        onClose={closeForm}
+      >
+        <form className="form form--sheet" onSubmit={handleSubmit}>
+          <div className="form__row">
             <label>
-              Notas
+              Concepto
               <input
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Opcional"
-              />
-            </label>
-            <div className="form__actions">
-              <button type="button" className="btn btn--ghost" onClick={closeForm}>
-                Cancelar
-              </button>
-              <button type="submit" className="btn btn--primary">
-                {editingId ? 'Guardar cambios' : 'Guardar cargo'}
-              </button>
-            </div>
-          </form>
-        </FormSheet>
-
-        <FormSheet
-          open={payOpen}
-          title="Registrar pago"
-          description={
-            payingExpense
-              ? `Ingresa el monto pagado de "${payingExpense.title}".`
-              : 'Ingresa el monto pagado.'
-          }
-          onClose={closePayForm}
-        >
-          <form className="form form--sheet" onSubmit={handlePaySubmit}>
-            <label>
-              Importe pagado (CLP)
-              <input
-                ref={payFieldRef}
-                value={payAmount}
-                onChange={(e) => setPayAmount(e.target.value)}
-                inputMode="numeric"
-                placeholder="450000"
+                ref={firstFieldRef}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ej. Supermercado"
                 required
               />
             </label>
-            <div className="form__actions">
-              <button
-                type="button"
-                className="btn btn--ghost"
-                onClick={closePayForm}
+            <label>
+              {editingId && expenses.find((e) => e.id === editingId)?.paid
+                ? 'Importe pagado (CLP)'
+                : 'Importe estimado (CLP)'}
+              <input
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                inputMode="numeric"
+                placeholder="Opcional"
+                required={
+                  !!editingId && !!expenses.find((e) => e.id === editingId)?.paid
+                }
+              />
+            </label>
+          </div>
+          <div className="form__row">
+            <label>
+              Categoría
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
               >
-                Cancelar
-              </button>
-              <button type="submit" className="btn btn--primary">
-                Confirmar pago
-              </button>
-            </div>
-          </form>
-        </FormSheet>
-      </section>
+                {EXPENSE_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Día
+              <input
+                type="number"
+                min={1}
+                max={maxDay}
+                value={day}
+                onChange={(e) => setDay(e.target.value)}
+                placeholder="—"
+              />
+            </label>
+          </div>
+          <label>
+            Notas
+            <input
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Opcional"
+            />
+          </label>
+          <div className="form__actions">
+            <button type="button" className="btn btn--ghost" onClick={closeForm}>
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn--primary">
+              {editingId ? 'Guardar cambios' : 'Guardar cargo'}
+            </button>
+          </div>
+        </form>
+      </FormSheet>
 
-      <RecurringExpensesSection
-        monthKey={monthKey}
-        recurring={recurring}
-        onAdd={onAddRecurring}
-        onUpdate={onUpdateRecurring}
-        onRemove={onRemoveRecurring}
-      />
-    </>
+      <FormSheet
+        open={payOpen}
+        title="Registrar pago"
+        description={
+          payingExpense
+            ? payingExpense.amount != null
+              ? `Confirma o corrige el monto pagado de "${payingExpense.title}".`
+              : `Ingresa el monto pagado de "${payingExpense.title}".`
+            : 'Ingresa el monto pagado.'
+        }
+        onClose={closePayForm}
+      >
+        <form className="form form--sheet" onSubmit={handlePaySubmit}>
+          <label>
+            Importe pagado (CLP)
+            <input
+              ref={payFieldRef}
+              value={payAmount}
+              onChange={(e) => setPayAmount(e.target.value)}
+              inputMode="numeric"
+              placeholder="Ingresa el valor a pagar"
+              required
+            />
+          </label>
+          <div className="form__actions">
+            <button type="button" className="btn btn--ghost" onClick={closePayForm}>
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn--primary">
+              Confirmar pago
+            </button>
+          </div>
+        </form>
+      </FormSheet>
+    </div>
   )
 }

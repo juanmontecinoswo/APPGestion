@@ -256,6 +256,93 @@ em {
   margin-top: 1rem;
 }
 
+.finanzas-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.panel--registry {
+  border-color: rgba(64, 145, 108, 0.35);
+  background:
+    linear-gradient(180deg, rgba(220, 232, 223, 0.45), rgba(255, 255, 255, 0.78));
+}
+
+.panel--payqueue {
+  border-color: rgba(196, 92, 38, 0.35);
+  background:
+    linear-gradient(180deg, rgba(240, 213, 196, 0.35), rgba(255, 255, 255, 0.82));
+}
+
+.panel__head--collapse {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0;
+}
+
+.collapse-trigger {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  flex: 1;
+}
+
+.collapse-trigger__chevron {
+  font-size: 1.1rem;
+  line-height: 1.4;
+  color: var(--leaf);
+  flex-shrink: 0;
+}
+
+.collapse-trigger__text {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.collapse-trigger__text strong {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.collapse-trigger__text span:last-child {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.panel__hint {
+  margin: 1rem 0 0.85rem;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.collapse-body.is-collapsed {
+  display: none;
+}
+
+.recurring-block {
+  margin-top: 1.25rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid var(--line);
+}
+
+.list--pay .list__item--pay {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.btn--pay-main {
+  min-width: 6.5rem;
+  padding: 0.7rem 1.2rem;
+}
+
 .panel--nested h3 {
   margin: 0 0 0.35rem;
   font-family: var(--font-display);
