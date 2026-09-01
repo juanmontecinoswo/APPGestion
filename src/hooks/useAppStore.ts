@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type {
   AppState,
   Expense,
+  RecurringExpense,
   Reminder,
   Task,
   WorkItem,
@@ -11,6 +12,7 @@ import {
   ensureMonthlyReminders,
   ensureMonthlyTasks,
   ensureMonthlyWork,
+  expenseFromRecurring,
   loadState,
   saveState,
 } from '../lib/storage'
@@ -21,7 +23,11 @@ export function useAppStore(activeMonth: string) {
   useEffect(() => {
     setState((prev) => {
       const tasks = ensureMonthlyTasks(prev.tasks, activeMonth)
-      const expenses = ensureMonthlyExpenses(prev.expenses, activeMonth)
+      const expenses = ensureMonthlyExpenses(
+        prev.expenses,
+        prev.recurringExpenses,
+        activeMonth,
+      )
       const reminders = ensureMonthlyReminders(prev.reminders, activeMonth)
       const workItems = ensureMonthlyWork(prev.workItems, activeMonth)
       if (
@@ -32,7 +38,13 @@ export function useAppStore(activeMonth: string) {
       ) {
         return prev
       }
-      const next = { tasks, expenses, reminders, workItems }
+      const next = {
+        tasks,
+        expenses,
+        recurringExpenses: prev.recurringExpenses,
+        reminders,
+        workItems,
+      }
       saveState(next)
       return next
     })
@@ -93,6 +105,37 @@ export function useAppStore(activeMonth: string) {
     }))
   }
 
+  function addRecurring(item: RecurringExpense) {
+    setState((s) => {
+      const recurringExpenses = [item, ...s.recurringExpenses]
+      const exists = s.expenses.some(
+        (expense) =>
+          expense.recurringId === item.id && expense.monthKey === activeMonth,
+      )
+      const expenses = exists
+        ? s.expenses
+        : [expenseFromRecurring(item, activeMonth), ...s.expenses]
+      return { ...s, recurringExpenses, expenses }
+    })
+  }
+
+  function updateRecurring(id: string, patch: Partial<RecurringExpense>) {
+    setState((s) => ({
+      ...s,
+      recurringExpenses: s.recurringExpenses.map((item) =>
+        item.id === id ? { ...item, ...patch } : item,
+      ),
+    }))
+  }
+
+  function removeRecurring(id: string) {
+    setState((s) => ({
+      ...s,
+      recurringExpenses: s.recurringExpenses.filter((item) => item.id !== id),
+      expenses: s.expenses.filter((expense) => expense.recurringId !== id),
+    }))
+  }
+
   function addReminder(reminder: Reminder) {
     setState((s) => ({ ...s, reminders: [reminder, ...s.reminders] }))
   }
@@ -147,6 +190,7 @@ export function useAppStore(activeMonth: string) {
     monthExpenses,
     monthReminders,
     monthWork,
+    recurringExpenses: state.recurringExpenses,
     addTask,
     updateTask,
     removeTask,
@@ -154,6 +198,9 @@ export function useAppStore(activeMonth: string) {
     addExpense,
     updateExpense,
     removeExpense,
+    addRecurring,
+    updateRecurring,
+    removeRecurring,
     addReminder,
     updateReminder,
     removeReminder,

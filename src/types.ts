@@ -1,6 +1,8 @@
 export type Importance = 'alta' | 'media' | 'baja'
 export type Recurrence = 'fija' | 'mensual'
 export type ExpenseKind = 'unico' | 'fijo' | 'mensual'
+export type RecurringKind = 'fijo' | 'mensual'
+export type RecurrenceEnd = 'manual' | 'months'
 export type WorkStatus = 'pendiente' | 'en_curso' | 'hecho'
 
 export type ViewId =
@@ -26,15 +28,31 @@ export interface Task {
 export interface Expense {
   id: string
   title: string
-  /** null until the expense is paid */
+  /** Estimado si no está pagado; monto real al pagar */
   amount: number | null
   category: string
   kind: ExpenseKind
   paid: boolean
+  recurringId: string | null
   /** YYYY-MM */
   monthKey: string
   day: number | null
   notes: string
+  createdAt: string
+}
+
+export interface RecurringExpense {
+  id: string
+  title: string
+  plannedAmount: number | null
+  category: string
+  kind: RecurringKind
+  day: number | null
+  notes: string
+  startMonthKey: string
+  recurrenceEnd: RecurrenceEnd
+  recurrenceMonths: number | null
+  active: boolean
   createdAt: string
 }
 
@@ -69,6 +87,7 @@ export interface WorkItem {
 export interface AppState {
   tasks: Task[]
   expenses: Expense[]
+  recurringExpenses: RecurringExpense[]
   reminders: Reminder[]
   workItems: WorkItem[]
 }

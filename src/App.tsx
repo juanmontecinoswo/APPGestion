@@ -113,9 +113,13 @@ export default function App() {
             <ExpensesPanel
               monthKey={monthKey}
               expenses={store.monthExpenses}
+              recurring={store.recurringExpenses}
               onAdd={store.addExpense}
               onUpdate={store.updateExpense}
               onRemove={store.removeExpense}
+              onAddRecurring={store.addRecurring}
+              onUpdateRecurring={store.updateRecurring}
+              onRemoveRecurring={store.removeRecurring}
             />
           )}
           {view === 'tareas' && (
