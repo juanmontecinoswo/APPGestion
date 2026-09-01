@@ -52,6 +52,30 @@ export function formatMoney(amount: number): string {
   }).format(Math.round(amount))
 }
 
+export function parseAmountInput(input: string): number | null {
+  const trimmed = input.trim()
+  if (!trimmed) return null
+  const parsed = Math.round(
+    Number(trimmed.replace(/[.\s]/g, '').replace(',', '.')),
+  )
+  if (Number.isNaN(parsed) || parsed < 0) return null
+  return parsed
+}
+
+export function paidExpenseTotal(expenses: Expense[]): number {
+  return expenses
+    .filter((e) => e.paid && e.amount != null)
+    .reduce((sum, e) => sum + (e.amount ?? 0), 0)
+}
+
+function migrateExpense(expense: Expense): Expense {
+  if (typeof expense.paid === 'boolean') return expense
+  return {
+    ...expense,
+    paid: expense.amount != null && expense.amount > 0,
+  }
+}
+
 function seedState(monthKey: string): AppState {
   const now = new Date().toISOString()
   const tasks: Task[] = [
@@ -97,6 +121,7 @@ function seedState(monthKey: string): AppState {
       amount: 450000,
       category: 'Vivienda',
       kind: 'fijo',
+      paid: true,
       monthKey,
       day: 1,
       notes: 'Cargo automático',
@@ -108,6 +133,7 @@ function seedState(monthKey: string): AppState {
       amount: 78500,
       category: 'Comida',
       kind: 'unico',
+      paid: true,
       monthKey,
       day: new Date().getDate(),
       notes: '',
@@ -116,9 +142,10 @@ function seedState(monthKey: string): AppState {
     {
       id: uid(),
       title: 'Internet + móvil',
-      amount: 35990,
+      amount: null,
       category: 'Servicios',
       kind: 'mensual',
+      paid: false,
       monthKey,
       day: 10,
       notes: '',
@@ -186,7 +213,9 @@ function seedState(monthKey: string): AppState {
 function normalizeState(raw: Partial<AppState>): AppState {
   return {
     tasks: raw.tasks ?? [],
-    expenses: raw.expenses ?? [],
+    expenses: (raw.expenses ?? []).map((expense) =>
+      migrateExpense(expense as Expense),
+    ),
     reminders: raw.reminders ?? [],
     workItems: raw.workItems ?? [],
   }
@@ -315,9 +344,10 @@ export function ensureMonthlyExpenses(
     (e) =>
       createExpense({
         title: e.title,
-        amount: e.amount,
+        amount: null,
         category: e.category,
         kind: e.kind,
+        paid: false,
         monthKey: targetMonth,
         day: e.day,
         notes: e.notes,

@@ -26,9 +26,11 @@ export interface Task {
 export interface Expense {
   id: string
   title: string
-  amount: number
+  /** null until the expense is paid */
+  amount: number | null
   category: string
   kind: ExpenseKind
+  paid: boolean
   /** YYYY-MM */
   monthKey: string
   day: number | null

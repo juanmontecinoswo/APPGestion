@@ -480,6 +480,12 @@ em {
   background: rgba(155, 44, 44, 0.08);
 }
 
+.btn--pay {
+  color: var(--leaf);
+  background: rgba(27, 67, 50, 0.12);
+  font-weight: 700;
+}
+
 .filters {
   display: flex;
   flex-wrap: wrap;

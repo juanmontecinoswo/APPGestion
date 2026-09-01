@@ -1,6 +1,6 @@
 import type { Expense, Reminder, Task, ViewId, WorkItem } from '../types'
 import { MENU_ITEMS } from '../types'
-import { formatMoney } from '../lib/storage'
+import { formatMoney, paidExpenseTotal } from '../lib/storage'
 
 interface Props {
   monthLabel: string
@@ -19,13 +19,17 @@ export function DashboardPanel({
   workItems,
   onOpen,
 }: Props) {
-  const total = expenses.reduce((sum, e) => sum + e.amount, 0)
+  const total = paidExpenseTotal(expenses)
+  const unpaidCount = expenses.filter((e) => !e.paid).length
   const pendingTasks = tasks.filter((t) => !t.done).length
   const pendingReminders = reminders.filter((r) => !r.done).length
   const openWork = workItems.filter((w) => w.status !== 'hecho').length
 
   const counts: Record<Exclude<ViewId, 'dashboard'>, string> = {
-    finanzas: formatMoney(total),
+    finanzas:
+      unpaidCount > 0
+        ? `${formatMoney(total)} · ${unpaidCount} por pagar`
+        : formatMoney(total),
     tareas: `${pendingTasks} pendientes`,
     recordatorios: `${pendingReminders} activos`,
     trabajo: `${openWork} en curso`,

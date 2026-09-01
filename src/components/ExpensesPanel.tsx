@@ -2,7 +2,12 @@ import type { FormEvent } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import type { Expense, ExpenseKind } from '../types'
 import { EXPENSE_CATEGORIES } from '../types'
-import { createExpense, daysInMonth, formatMoney } from '../lib/storage'
+import {
+  createExpense,
+  daysInMonth,
+  formatMoney,
+  parseAmountInput,
+} from '../lib/storage'
 import { AddIconButton, FormSheet } from './FormSheet'
 
 interface Props {
@@ -27,20 +32,26 @@ export function ExpensesPanel({
   onRemove,
 }: Props) {
   const [open, setOpen] = useState(false)
+  const [payOpen, setPayOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
+  const [payAmount, setPayAmount] = useState('')
   const [category, setCategory] = useState<string>(EXPENSE_CATEGORIES[0])
   const [kind, setKind] = useState<ExpenseKind>('unico')
   const [day, setDay] = useState('')
   const [notes, setNotes] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [payingId, setPayingId] = useState<string | null>(null)
   const firstFieldRef = useRef<HTMLInputElement>(null)
+  const payFieldRef = useRef<HTMLInputElement>(null)
 
   const maxDay = daysInMonth(monthKey)
+  const payingExpense = expenses.find((e) => e.id === payingId)
   const sorted = [...expenses].sort((a, b) => {
+    if (a.paid !== b.paid) return a.paid ? 1 : -1
     const da = a.day ?? 99
     const db = b.day ?? 99
-    return da - db || b.amount - a.amount
+    return da - db || (b.amount ?? 0) - (a.amount ?? 0)
   })
 
   useEffect(() => {
@@ -49,6 +60,13 @@ export function ExpensesPanel({
       return () => window.clearTimeout(timer)
     }
   }, [open])
+
+  useEffect(() => {
+    if (payOpen) {
+      const timer = window.setTimeout(() => payFieldRef.current?.focus(), 40)
+      return () => window.clearTimeout(timer)
+    }
+  }, [payOpen])
 
   function resetForm() {
     setTitle('')
@@ -65,6 +83,12 @@ export function ExpensesPanel({
     resetForm()
   }
 
+  function closePayForm() {
+    setPayOpen(false)
+    setPayAmount('')
+    setPayingId(null)
+  }
+
   function openCreate() {
     resetForm()
     setOpen(true)
@@ -73,7 +97,7 @@ export function ExpensesPanel({
   function startEdit(expense: Expense) {
     setEditingId(expense.id)
     setTitle(expense.title)
-    setAmount(String(expense.amount))
+    setAmount(expense.amount != null ? String(expense.amount) : '')
     setCategory(expense.category)
     setKind(expense.kind)
     setDay(expense.day != null ? String(expense.day) : '')
@@ -81,30 +105,57 @@ export function ExpensesPanel({
     setOpen(true)
   }
 
+  function startPay(expense: Expense) {
+    setPayingId(expense.id)
+    setPayAmount(expense.amount != null ? String(expense.amount) : '')
+    setPayOpen(true)
+  }
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    const parsedAmount = Math.round(
-      Number(amount.replace(/[.\s]/g, '').replace(',', '.')),
-    )
-    if (!title.trim() || Number.isNaN(parsedAmount) || parsedAmount < 0) return
+    if (!title.trim()) return
 
+    const parsedAmount = parseAmountInput(amount)
     const dayNum = day ? Math.min(Math.max(1, Number(day)), maxDay) : null
+    const editing = editingId ? expenses.find((item) => item.id === editingId) : null
+
+    if (editing?.paid) {
+      if (parsedAmount == null) return
+    }
+
     const payload = {
       title: title.trim(),
-      amount: parsedAmount,
+      amount: editing?.paid ? parsedAmount : null,
       category,
       kind,
       monthKey,
       day: dayNum && !Number.isNaN(dayNum) ? dayNum : null,
       notes: notes.trim(),
+      paid: editing?.paid ?? false,
     }
 
     if (editingId) {
       onUpdate(editingId, payload)
     } else {
-      onAdd(createExpense(payload))
+      onAdd(
+        createExpense({
+          ...payload,
+          paid: false,
+          amount: null,
+        }),
+      )
     }
     closeForm()
+  }
+
+  function handlePaySubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!payingId) return
+    const parsedAmount = parseAmountInput(payAmount)
+    if (parsedAmount == null) return
+
+    onUpdate(payingId, { amount: parsedAmount, paid: true })
+    closePayForm()
   }
 
   return (
@@ -112,7 +163,10 @@ export function ExpensesPanel({
       <header className="panel__head panel__head--row">
         <div>
           <h2 id="finanzas-title">Finanzas del mes</h2>
-          <p>Registra cargos únicos, fijos o que se repiten cada mes.</p>
+          <p>
+            Registra cargos sin monto y complétalo al pagar para sumarlo al
+            total mensual.
+          </p>
         </div>
         <AddIconButton label="Añadir cargo" onClick={openCreate} />
       </header>
@@ -127,6 +181,11 @@ export function ExpensesPanel({
               <div className="list__title-row">
                 <strong>{expense.title}</strong>
                 <span className="chip chip--kind">{KIND_LABEL[expense.kind]}</span>
+                <span
+                  className={`chip chip--status chip--${expense.paid ? 'hecho' : 'pendiente'}`}
+                >
+                  {expense.paid ? 'Pagado' : 'Por pagar'}
+                </span>
               </div>
               <div className="list__meta">
                 <span>{expense.category}</span>
@@ -135,8 +194,21 @@ export function ExpensesPanel({
               </div>
             </div>
             <div className="list__side">
-              <span className="amount">{formatMoney(expense.amount)}</span>
+              <span className="amount">
+                {expense.paid && expense.amount != null
+                  ? formatMoney(expense.amount)
+                  : 'Sin pagar'}
+              </span>
               <div className="list__ops">
+                {!expense.paid && (
+                  <button
+                    type="button"
+                    className="btn btn--tiny btn--pay"
+                    onClick={() => startPay(expense)}
+                  >
+                    Pagar
+                  </button>
+                )}
                 <button
                   type="button"
                   className="btn btn--tiny"
@@ -159,8 +231,8 @@ export function ExpensesPanel({
 
       <FormSheet
         open={open}
-        title={editingId ? 'Editar gasto' : 'Nuevo gasto'}
-        description="Completa los datos y guarda el cargo."
+        title={editingId ? 'Editar cargo' : 'Nuevo cargo'}
+        description="El importe es opcional. Podrás ingresarlo al momento de pagar."
         onClose={closeForm}
       >
         <form className="form form--sheet" onSubmit={handleSubmit}>
@@ -175,16 +247,27 @@ export function ExpensesPanel({
                 required
               />
             </label>
-            <label>
-              Importe (CLP)
-              <input
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                inputMode="numeric"
-                placeholder="450000"
-                required
-              />
-            </label>
+            {editingId && expenses.find((e) => e.id === editingId)?.paid ? (
+              <label>
+                Importe pagado (CLP)
+                <input
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  inputMode="numeric"
+                  placeholder="450000"
+                  required
+                />
+              </label>
+            ) : (
+              <label>
+                Importe (CLP)
+                <input
+                  value={amount}
+                  disabled
+                  placeholder="Se ingresa al pagar"
+                />
+              </label>
+            )}
           </div>
           <div className="form__row form__row--3">
             <label>
@@ -236,7 +319,44 @@ export function ExpensesPanel({
               Cancelar
             </button>
             <button type="submit" className="btn btn--primary">
-              {editingId ? 'Guardar cambios' : 'Guardar gasto'}
+              {editingId ? 'Guardar cambios' : 'Guardar cargo'}
+            </button>
+          </div>
+        </form>
+      </FormSheet>
+
+      <FormSheet
+        open={payOpen}
+        title="Registrar pago"
+        description={
+          payingExpense
+            ? `Ingresa el monto pagado de "${payingExpense.title}".`
+            : 'Ingresa el monto pagado.'
+        }
+        onClose={closePayForm}
+      >
+        <form className="form form--sheet" onSubmit={handlePaySubmit}>
+          <label>
+            Importe pagado (CLP)
+            <input
+              ref={payFieldRef}
+              value={payAmount}
+              onChange={(e) => setPayAmount(e.target.value)}
+              inputMode="numeric"
+              placeholder="450000"
+              required
+            />
+          </label>
+          <div className="form__actions">
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={closePayForm}
+            >
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn--primary">
+              Confirmar pago
             </button>
           </div>
         </form>
