@@ -5,7 +5,7 @@ export type WorkStatus = 'pendiente' | 'en_curso' | 'hecho'
 
 export type ViewId =
   | 'dashboard'
-  | 'gastos'
+  | 'finanzas'
   | 'tareas'
   | 'recordatorios'
   | 'trabajo'
@@ -88,8 +88,8 @@ export const MENU_ITEMS: {
   blurb: string
 }[] = [
   {
-    id: 'gastos',
-    label: 'Gastos',
+    id: 'finanzas',
+    label: 'Finanzas',
     blurb: 'Controla cargos únicos, fijos y mensuales en pesos chilenos.',
   },
   {

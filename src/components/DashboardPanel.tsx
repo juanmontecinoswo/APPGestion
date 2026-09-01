@@ -25,7 +25,7 @@ export function DashboardPanel({
   const openWork = workItems.filter((w) => w.status !== 'hecho').length
 
   const counts: Record<Exclude<ViewId, 'dashboard'>, string> = {
-    gastos: formatMoney(total),
+    finanzas: formatMoney(total),
     tareas: `${pendingTasks} pendientes`,
     recordatorios: `${pendingReminders} activos`,
     trabajo: `${openWork} en curso`,

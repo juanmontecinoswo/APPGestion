@@ -61,11 +61,11 @@ em {
   font-weight: 600;
 }
 
-.app {
+.app-shell {
   position: relative;
-  width: min(960px, calc(100% - 2rem));
-  margin: 0 auto;
-  padding: 2.25rem 0 3.5rem;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  min-height: 100vh;
   opacity: 0;
   transform: translateY(12px);
   transition:
@@ -73,9 +73,71 @@ em {
     transform 0.55s ease;
 }
 
-.app.is-ready {
+.app-shell.is-ready {
   opacity: 1;
   transform: none;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-height: 100vh;
+  padding: 1.75rem 1rem 1.5rem;
+  border-right: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(10px);
+}
+
+.sidebar__brand {
+  padding: 0 0.5rem;
+}
+
+.sidebar__tagline {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.sidebar__nav {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.sidebar__link {
+  width: 100%;
+  border: 0;
+  border-radius: 12px;
+  padding: 0.75rem 0.9rem;
+  text-align: left;
+  font-weight: 650;
+  color: var(--ink-soft);
+  background: transparent;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.15s ease;
+}
+
+.sidebar__link:hover {
+  color: var(--ink);
+  background: rgba(27, 67, 50, 0.08);
+}
+
+.sidebar__link.is-active {
+  color: #f4faf6;
+  background: var(--leaf);
+  box-shadow: 0 8px 20px rgba(27, 67, 50, 0.22);
+}
+
+.app {
+  position: relative;
+  width: min(920px, calc(100% - 2.5rem));
+  margin: 0 auto;
+  padding: 2rem 0 3rem;
 }
 
 .atmosphere {
@@ -91,7 +153,6 @@ em {
 }
 
 .hero,
-.tabs,
 .main,
 .footer {
   position: relative;
@@ -110,9 +171,9 @@ em {
 }
 
 .brand {
-  margin: 0 0 0.65rem;
+  margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(2.6rem, 7vw, 4rem);
+  font-size: 1.85rem;
   font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 0.95;
@@ -122,7 +183,7 @@ em {
 .hero h1 {
   margin: 0 0 0.75rem;
   font-family: var(--font-display);
-  font-size: clamp(1.35rem, 3.2vw, 1.85rem);
+  font-size: clamp(1.5rem, 3.2vw, 2rem);
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.2;
@@ -172,42 +233,6 @@ em {
 
 .month-nav__today {
   margin-left: 0.25rem;
-}
-
-.tabs {
-  display: flex;
-  gap: 0.35rem;
-  padding: 0.35rem;
-  margin-bottom: 1.25rem;
-  width: fit-content;
-  max-width: 100%;
-  overflow-x: auto;
-  border-radius: 999px;
-  background: rgba(27, 67, 50, 0.08);
-  animation: rise 0.75s 0.12s ease both;
-}
-
-.tabs__btn {
-  border: 0;
-  background: transparent;
-  color: var(--ink-soft);
-  padding: 0.7rem 1.15rem;
-  border-radius: 999px;
-  font-weight: 600;
-  transition:
-    background 0.2s ease,
-    color 0.2s ease,
-    transform 0.2s ease;
-}
-
-.tabs__btn:hover {
-  color: var(--ink);
-}
-
-.tabs__btn.is-active {
-  background: var(--leaf);
-  color: #f4faf6;
-  box-shadow: 0 8px 20px rgba(27, 67, 50, 0.25);
 }
 
 .main {
@@ -694,7 +719,7 @@ em {
   color: var(--leaf-mid);
 }
 
-.dash-card--gastos {
+.dash-card--finanzas {
   background:
     linear-gradient(155deg, rgba(255, 255, 255, 0.9), rgba(240, 213, 196, 0.35));
 }
@@ -871,11 +896,36 @@ em {
   }
 }
 
-@media (max-width: 760px) {
-  .app {
-    width: min(100% - 1.25rem, 960px);
-    padding-top: 1.5rem;
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: 1fr;
   }
+
+  .sidebar {
+    position: static;
+    min-height: auto;
+    padding: 1rem 0.85rem;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .sidebar__nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sidebar__link {
+    text-align: center;
+    padding: 0.65rem 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  .app {
+    width: min(100% - 1.25rem, 920px);
+    padding-top: 1.25rem;
+  }
+}
+
+@media (max-width: 760px) {
 
   .month-nav {
     width: 100%;
@@ -887,14 +937,8 @@ em {
     width: 100%;
   }
 
-  .tabs {
-    width: 100%;
-  }
-
-  .tabs__btn {
-    flex: 1;
-    text-align: center;
-    padding-inline: 0.7rem;
+  .sidebar__nav {
+    grid-template-columns: 1fr 1fr;
   }
 
   .panel__head--row {
@@ -939,10 +983,9 @@ em {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app,
+  .app-shell,
   .hero,
   .month-nav,
-  .tabs,
   .main,
   .btn,
   .progress__bar,
@@ -951,7 +994,7 @@ em {
     animation: none !important;
   }
 
-  .app {
+  .app-shell {
     opacity: 1;
     transform: none;
   }

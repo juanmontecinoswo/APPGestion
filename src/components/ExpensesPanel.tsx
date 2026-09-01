@@ -108,18 +108,18 @@ export function ExpensesPanel({
   }
 
   return (
-    <section className="panel" aria-labelledby="gastos-title">
+    <section className="panel" aria-labelledby="finanzas-title">
       <header className="panel__head panel__head--row">
         <div>
-          <h2 id="gastos-title">Gastos del mes</h2>
+          <h2 id="finanzas-title">Finanzas del mes</h2>
           <p>Registra cargos únicos, fijos o que se repiten cada mes.</p>
         </div>
-        <AddIconButton label="Añadir gasto" onClick={openCreate} />
+        <AddIconButton label="Añadir cargo" onClick={openCreate} />
       </header>
 
       <ul className="list">
         {sorted.length === 0 && (
-          <li className="list__empty">Aún no hay gastos este mes.</li>
+          <li className="list__empty">Aún no hay cargos este mes.</li>
         )}
         {sorted.map((expense) => (
           <li key={expense.id} className="list__item">

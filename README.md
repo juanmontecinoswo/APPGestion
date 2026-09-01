@@ -1,11 +1,11 @@
 # Mesura
 
-App web para gestionar **gastos en CLP**, **tareas**, **recordatorios** y **trabajo** del mes.
+App web para gestionar **finanzas en CLP**, **tareas**, **recordatorios** y **trabajo** del mes.
 
 ## Funciones
 
-- Dashboard principal con acceso a todos los menús
-- Gastos en pesos chilenos (únicos, fijos o mensuales)
+- Dashboard principal con barra lateral de menús
+- Finanzas en pesos chilenos (únicos, fijos o mensuales)
 - Tareas con importancia alta / media / baja
 - Recordatorios con día y hora
 - Trabajo con estado (pendiente, en curso, hecho)
