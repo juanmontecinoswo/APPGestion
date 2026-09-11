@@ -1,36 +1,50 @@
 import { useEffect, useState } from 'react'
-import type { ViewId } from './types'
+import type { UserAccount, ViewId } from './types'
 import { MENU_ITEMS } from './types'
 import {
   formatMonthLabel,
   monthKeyFromDate,
   shiftMonth,
 } from './lib/storage'
+import { useAuth } from './hooks/useAuth'
 import { useAppStore } from './hooks/useAppStore'
+import { LoginScreen } from './components/LoginScreen'
 import { DashboardPanel } from './components/DashboardPanel'
 import { ExpensesPanel } from './components/ExpensesPanel'
 import { TasksPanel } from './components/TasksPanel'
 import { RemindersPanel } from './components/RemindersPanel'
 import { WorkPanel } from './components/WorkPanel'
+import { AccountPanel } from './components/AccountPanel'
 import './App.css'
 
-const NAV: { id: ViewId; label: string }[] = [
-  { id: 'dashboard', label: 'Dashboard' },
-  ...MENU_ITEMS.map((item) => ({ id: item.id, label: item.label })),
-]
-
-export default function App() {
+function AuthenticatedApp({
+  user,
+  onLogout,
+  onUserChanged,
+}: {
+  user: UserAccount
+  onLogout: () => void
+  onUserChanged: () => void
+}) {
   const [monthKey, setMonthKey] = useState(() => monthKeyFromDate())
   const [view, setView] = useState<ViewId>('dashboard')
   const [ready, setReady] = useState(false)
-
-  const store = useAppStore(monthKey)
+  const store = useAppStore(user.id, monthKey)
   const monthLabel = formatMonthLabel(monthKey)
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setReady(true))
     return () => cancelAnimationFrame(id)
   }, [])
+
+  const nav: { id: ViewId; label: string }[] = [
+    { id: 'dashboard', label: 'Dashboard' },
+    ...MENU_ITEMS.map((item) => ({ id: item.id, label: item.label })),
+    {
+      id: 'cuenta',
+      label: user.role === 'admin' ? 'Cuenta / Usuarios' : 'Mi cuenta',
+    },
+  ]
 
   return (
     <div className={`app-shell${ready ? ' is-ready' : ''}`}>
@@ -43,7 +57,7 @@ export default function App() {
         </div>
 
         <nav className="sidebar__nav">
-          {NAV.map((item) => (
+          {nav.map((item) => (
             <button
               key={item.id}
               type="button"
@@ -55,47 +69,67 @@ export default function App() {
             </button>
           ))}
         </nav>
+
+        <div className="sidebar__user">
+          <p className="sidebar__user-name">{user.displayName}</p>
+          <p className="sidebar__user-meta">@{user.username}</p>
+          <button
+            type="button"
+            className="btn btn--ghost sidebar__logout"
+            onClick={onLogout}
+          >
+            Cerrar sesión
+          </button>
+        </div>
       </aside>
 
       <div className="app">
         <header className="hero">
           <div className="hero__brand">
-            <h1>Dashboard del mes</h1>
+            <h1>
+              {view === 'cuenta'
+                ? user.role === 'admin'
+                  ? 'Cuenta y usuarios'
+                  : 'Mi cuenta'
+                : 'Dashboard del mes'}
+            </h1>
             <p className="hero__lead">
-              Gestiona finanzas en CLP, tareas, recordatorios y trabajo desde un
-              solo panel.
+              Hola, {user.displayName}. Gestiona finanzas en CLP, tareas,
+              recordatorios y trabajo.
             </p>
           </div>
 
-          <div className="month-nav" role="group" aria-label="Mes activo">
-            <button
-              type="button"
-              className="btn btn--icon"
-              aria-label="Mes anterior"
-              onClick={() => setMonthKey((m) => shiftMonth(m, -1))}
-            >
-              ‹
-            </button>
-            <div className="month-nav__label">
-              <span className="month-nav__eyebrow">Mes actual</span>
-              <strong>{monthLabel}</strong>
+          {view !== 'cuenta' && (
+            <div className="month-nav" role="group" aria-label="Mes activo">
+              <button
+                type="button"
+                className="btn btn--icon"
+                aria-label="Mes anterior"
+                onClick={() => setMonthKey((m) => shiftMonth(m, -1))}
+              >
+                ‹
+              </button>
+              <div className="month-nav__label">
+                <span className="month-nav__eyebrow">Mes actual</span>
+                <strong>{monthLabel}</strong>
+              </div>
+              <button
+                type="button"
+                className="btn btn--icon"
+                aria-label="Mes siguiente"
+                onClick={() => setMonthKey((m) => shiftMonth(m, 1))}
+              >
+                ›
+              </button>
+              <button
+                type="button"
+                className="btn btn--ghost month-nav__today"
+                onClick={() => setMonthKey(monthKeyFromDate())}
+              >
+                Hoy
+              </button>
             </div>
-            <button
-              type="button"
-              className="btn btn--icon"
-              aria-label="Mes siguiente"
-              onClick={() => setMonthKey((m) => shiftMonth(m, 1))}
-            >
-              ›
-            </button>
-            <button
-              type="button"
-              className="btn btn--ghost month-nav__today"
-              onClick={() => setMonthKey(monthKeyFromDate())}
-            >
-              Hoy
-            </button>
-          </div>
+          )}
         </header>
 
         <main className="main">
@@ -106,7 +140,7 @@ export default function App() {
               expenses={store.monthExpenses}
               reminders={store.monthReminders}
               workItems={store.monthWork}
-              onOpen={setView}
+              onOpen={(next) => setView(next)}
             />
           )}
           {view === 'finanzas' && (
@@ -151,15 +185,50 @@ export default function App() {
               onRemove={store.removeWorkItem}
             />
           )}
+          {view === 'cuenta' && (
+            <AccountPanel user={user} onUserChanged={onUserChanged} />
+          )}
         </main>
 
         <footer className="footer">
           <p>
-            Montos en pesos chilenos (CLP). Los datos se guardan en este
-            navegador.
+            Montos en pesos chilenos (CLP). Los datos de cada cuenta se guardan
+            en este navegador.
           </p>
         </footer>
       </div>
     </div>
+  )
+}
+
+export default function App() {
+  const auth = useAuth()
+
+  if (auth.booting) {
+    return (
+      <div className="login-screen">
+        <div className="atmosphere" aria-hidden="true" />
+        <p className="login-loading">Cargando Mesura…</p>
+      </div>
+    )
+  }
+
+  if (!auth.user) {
+    return (
+      <LoginScreen
+        busy={auth.busy}
+        error={auth.error}
+        onLogin={auth.login}
+        onClearError={auth.clearError}
+      />
+    )
+  }
+
+  return (
+    <AuthenticatedApp
+      user={auth.user}
+      onLogout={auth.logout}
+      onUserChanged={auth.refreshUser}
+    />
   )
 }

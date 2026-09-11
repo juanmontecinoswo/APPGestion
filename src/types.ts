@@ -5,12 +5,30 @@ export type RecurringKind = 'fijo' | 'mensual'
 export type RecurrenceEnd = 'manual' | 'months'
 export type WorkStatus = 'pendiente' | 'en_curso' | 'hecho'
 
+export type UserRole = 'admin' | 'user'
+
 export type ViewId =
   | 'dashboard'
   | 'finanzas'
   | 'tareas'
   | 'recordatorios'
   | 'trabajo'
+  | 'cuenta'
+
+export interface UserAccount {
+  id: string
+  username: string
+  displayName: string
+  passwordHash: string
+  role: UserRole
+  active: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AuthState {
+  users: UserAccount[]
+}
 
 export interface Task {
   id: string
@@ -104,7 +122,7 @@ export const EXPENSE_CATEGORIES = [
 ] as const
 
 export const MENU_ITEMS: {
-  id: Exclude<ViewId, 'dashboard'>
+  id: Exclude<ViewId, 'dashboard' | 'cuenta'>
   label: string
   blurb: string
 }[] = [
@@ -129,3 +147,10 @@ export const MENU_ITEMS: {
     blurb: 'Seguimiento de encargos, proyectos y estados laborales.',
   },
 ]
+
+/** Credenciales iniciales del administrador (cámbialas después del primer ingreso). */
+export const DEFAULT_ADMIN = {
+  username: 'admin',
+  password: 'admin123',
+  displayName: 'Administrador',
+} as const

@@ -17,8 +17,12 @@ import {
   saveState,
 } from '../lib/storage'
 
-export function useAppStore(activeMonth: string) {
-  const [state, setState] = useState<AppState>(() => loadState())
+export function useAppStore(userId: string, activeMonth: string) {
+  const [state, setState] = useState<AppState>(() => loadState(userId))
+
+  useEffect(() => {
+    setState(loadState(userId))
+  }, [userId])
 
   useEffect(() => {
     setState((prev) => {
@@ -45,14 +49,14 @@ export function useAppStore(activeMonth: string) {
         reminders,
         workItems,
       }
-      saveState(next)
+      saveState(userId, next)
       return next
     })
-  }, [activeMonth])
+  }, [activeMonth, userId])
 
   useEffect(() => {
-    saveState(state)
-  }, [state])
+    saveState(userId, state)
+  }, [state, userId])
 
   const monthTasks = state.tasks.filter((t) => t.monthKey === activeMonth)
   const monthExpenses = state.expenses.filter((e) => e.monthKey === activeMonth)

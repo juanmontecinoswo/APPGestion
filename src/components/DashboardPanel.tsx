@@ -8,7 +8,7 @@ interface Props {
   expenses: Expense[]
   reminders: Reminder[]
   workItems: WorkItem[]
-  onOpen: (view: Exclude<ViewId, 'dashboard'>) => void
+  onOpen: (view: Exclude<ViewId, 'dashboard' | 'cuenta'>) => void
 }
 
 export function DashboardPanel({
@@ -25,7 +25,7 @@ export function DashboardPanel({
   const pendingReminders = reminders.filter((r) => !r.done).length
   const openWork = workItems.filter((w) => w.status !== 'hecho').length
 
-  const counts: Record<Exclude<ViewId, 'dashboard'>, string> = {
+  const counts: Record<Exclude<ViewId, 'dashboard' | 'cuenta'>, string> = {
     finanzas:
       unpaidCount > 0
         ? `${formatMoney(total)} · ${unpaidCount} por pagar`

@@ -8,10 +8,15 @@ import type {
   WorkItem,
 } from '../types'
 
-const STORAGE_KEY = 'mesura-v3'
+const STORAGE_PREFIX = 'mesura-data-v1-'
+const LEGACY_STORAGE_KEY = 'mesura-v3'
 
 function uid(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+function dataKey(userId: string): string {
+  return `${STORAGE_PREFIX}${userId}`
 }
 
 export function monthKeyFromDate(date = new Date()): string {
@@ -306,28 +311,38 @@ function normalizeState(raw: Partial<AppState>): AppState {
   }
 }
 
-export function loadState(): AppState {
+export function loadState(userId: string): AppState {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw =
+      localStorage.getItem(dataKey(userId)) ??
+      (localStorage.getItem(LEGACY_STORAGE_KEY) &&
+      !localStorage.getItem(dataKey(userId))
+        ? localStorage.getItem(LEGACY_STORAGE_KEY)
+        : null)
     if (!raw) {
       const initial = seedState(monthKeyFromDate())
-      saveState(initial)
+      saveState(userId, initial)
       return initial
     }
     const parsed = normalizeState(JSON.parse(raw) as Partial<AppState>)
     if (!Array.isArray(parsed.tasks) || !Array.isArray(parsed.expenses)) {
       throw new Error('invalid')
     }
+    // Migrate legacy shared store into this user once
+    if (!localStorage.getItem(dataKey(userId)) && localStorage.getItem(LEGACY_STORAGE_KEY)) {
+      saveState(userId, parsed)
+      localStorage.removeItem(LEGACY_STORAGE_KEY)
+    }
     return parsed
   } catch {
     const fallback = seedState(monthKeyFromDate())
-    saveState(fallback)
+    saveState(userId, fallback)
     return fallback
   }
 }
 
-export function saveState(state: AppState): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+export function saveState(userId: string, state: AppState): void {
+  localStorage.setItem(dataKey(userId), JSON.stringify(state))
 }
 
 export function createTask(

@@ -1,14 +1,21 @@
 # Mesura
 
-App web para gestionar **finanzas en CLP**, **tareas**, **recordatorios** y **trabajo** del mes.
+App web para gestionar **finanzas en CLP**, **tareas**, **recordatorios** y **trabajo** del mes, con **login de usuarios**.
+
+## Acceso inicial (administrador)
+
+- Usuario: `admin`
+- Contraseña: `admin123`
+
+Cámbialos después del primer ingreso en **Cuenta / Usuarios**.
 
 ## Funciones
 
-- Dashboard principal con barra lateral de menús
-- Finanzas en pesos chilenos (únicos, fijos o mensuales)
-- Tareas con importancia alta / media / baja
-- Recordatorios con día y hora
-- Trabajo con estado (pendiente, en curso, hecho)
+- Login con cuentas de usuario
+- Administrador: cambia su nombre/contraseña y gestiona usuarios no admin
+- Usuarios normales: datos propios y edición de su cuenta
+- Dashboard con barra lateral
+- Finanzas (cargos del mes + recurrentes + cola de pago)
 - Datos guardados en el navegador (`localStorage`)
 
 ## Desarrollo
