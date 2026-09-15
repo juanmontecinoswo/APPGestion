@@ -23,7 +23,7 @@ export function LoginScreen({ busy, error, onLogin, onClearError }: Props) {
     <div className="login-screen">
       <div className="atmosphere" aria-hidden="true" />
       <div className="login-card">
-        <p className="brand">Mesura</p>
+        <p className="brand">Organizador</p>
         <h1>Inicia sesión</h1>
         <p className="login-card__lead">
           Accede a tu cuenta para gestionar finanzas, tareas y más.

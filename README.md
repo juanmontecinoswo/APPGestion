@@ -1,4 +1,4 @@
-# Mesura
+# Organizador
 
 App web para gestionar **finanzas en CLP**, **tareas**, **recordatorios** y **trabajo** del mes, con **login de usuarios**.
 

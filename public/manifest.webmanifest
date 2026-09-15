@@ -1,6 +1,6 @@
 {
-  "name": "Mesura",
-  "short_name": "Mesura",
+  "name": "Organizador",
+  "short_name": "Organizador",
   "description": "Finanzas, tareas y trabajo del mes en pesos chilenos",
   "start_url": "/",
   "display": "standalone",

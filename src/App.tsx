@@ -66,9 +66,9 @@ function AuthenticatedApp({
           onClick={() => setView('dashboard')}
         >
           <span className="topbar__logo" aria-hidden="true">
-            M
+            O
           </span>
-          <span className="brand">Mesura</span>
+          <span className="brand">Organizador</span>
         </button>
 
         <div className="topbar__user" aria-label="Información de usuario">
@@ -208,7 +208,7 @@ export default function App() {
   if (auth.booting) {
     return (
       <div className="login-screen">
-        <p className="login-loading">Cargando Mesura…</p>
+        <p className="login-loading">Cargando Organizador…</p>
       </div>
     )
   }
