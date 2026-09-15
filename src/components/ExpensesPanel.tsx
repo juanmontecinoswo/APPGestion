@@ -195,7 +195,8 @@ export function ExpensesPanel({
             <span className="collapse-trigger__text">
               <strong id="all-expenses-title">Todos los gastos</strong>
               <span>
-                {expenses.length} cargos · {recurring.length} recurrentes
+                {expenses.length} cargos · toca para{' '}
+                {allExpanded ? 'contraer' : 'expandir'}
               </span>
             </span>
           </button>
@@ -258,17 +259,16 @@ export function ExpensesPanel({
               </li>
             ))}
           </ul>
-
-          <RecurringExpensesSection
-            embedded
-            monthKey={monthKey}
-            recurring={recurring}
-            onAdd={onAddRecurring}
-            onUpdate={onUpdateRecurring}
-            onRemove={onRemoveRecurring}
-          />
         </div>
       </section>
+
+      <RecurringExpensesSection
+        monthKey={monthKey}
+        recurring={recurring}
+        onAdd={onAddRecurring}
+        onUpdate={onUpdateRecurring}
+        onRemove={onRemoveRecurring}
+      />
 
       <section className="panel panel--payqueue" aria-labelledby="pay-title">
         <header className="panel__head">

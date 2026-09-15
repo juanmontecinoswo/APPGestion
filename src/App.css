@@ -618,21 +618,31 @@ em {
   border-top: 1px solid var(--line);
 }
 
+.panel--recurring {
+  border-color: rgba(110, 168, 255, 0.2);
+}
+
 .collapse-trigger {
   display: flex;
   align-items: flex-start;
   gap: 0.55rem;
   border: 0;
   background: transparent;
-  padding: 0;
+  padding: 0.15rem 0.25rem 0.15rem 0;
   text-align: left;
   flex: 1;
+  border-radius: 10px;
+}
+
+.collapse-trigger:hover {
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .collapse-trigger__chevron {
   font-size: 1.1rem;
   line-height: 1.4;
   color: var(--accent);
+  width: 1.1rem;
 }
 
 .collapse-trigger__text {
@@ -650,7 +660,12 @@ em {
   font-size: 0.88rem;
 }
 
-.collapse-body.is-collapsed {
+.collapse-body {
+  margin-top: 1rem;
+}
+
+.collapse-body.is-collapsed,
+.collapse-body[hidden] {
   display: none;
 }
 

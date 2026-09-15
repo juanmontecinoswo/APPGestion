@@ -14,7 +14,6 @@ import { AddIconButton, FormSheet } from './FormSheet'
 interface Props {
   monthKey: string
   recurring: RecurringExpense[]
-  embedded?: boolean
   onAdd: (item: RecurringExpense) => void
   onUpdate: (id: string, patch: Partial<RecurringExpense>) => void
   onRemove: (id: string) => void
@@ -28,11 +27,11 @@ const KIND_LABEL: Record<RecurringKind, string> = {
 export function RecurringExpensesSection({
   monthKey,
   recurring,
-  embedded = false,
   onAdd,
   onUpdate,
   onRemove,
 }: Props) {
+  const [expanded, setExpanded] = useState(true)
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [plannedAmount, setPlannedAmount] = useState('')
@@ -129,71 +128,95 @@ export function RecurringExpensesSection({
     closeForm()
   }
 
-  const content = (
-    <>
-      <header className="panel__head panel__head--row">
-        <div>
-          <h3 id="recurring-title">Gastos fijos y mensuales</h3>
-          <p>
-            Define cargos recurrentes con fin manual o por cantidad de meses.
-          </p>
-        </div>
+  return (
+    <section className="panel panel--recurring" aria-labelledby="recurring-title">
+      <header className="panel__head panel__head--collapse">
+        <button
+          type="button"
+          className="collapse-trigger"
+          aria-expanded={expanded}
+          aria-controls="recurring-body"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          <span className="collapse-trigger__chevron" aria-hidden="true">
+            {expanded ? '▾' : '▸'}
+          </span>
+          <span className="collapse-trigger__text">
+            <strong id="recurring-title">Gastos fijos y mensuales</strong>
+            <span>
+              {recurring.length} recurrentes · toca para{' '}
+              {expanded ? 'contraer' : 'expandir'}
+            </span>
+          </span>
+        </button>
         <AddIconButton label="Añadir recurrente" onClick={openCreate} />
       </header>
 
-      <ul className="list">
-        {recurring.length === 0 && (
-          <li className="list__empty">No hay gastos recurrentes configurados.</li>
-        )}
-        {recurring.map((item) => (
-          <li key={item.id} className="list__item">
-            <div className="list__main">
-              <div className="list__title-row">
-                <strong>{item.title}</strong>
-                <span className="chip chip--kind">{KIND_LABEL[item.kind]}</span>
-                <span
-                  className={`chip chip--status chip--${item.active ? 'en_curso' : 'pendiente'}`}
-                >
-                  {item.active ? 'Activo' : 'Detenido'}
-                </span>
+      <div
+        id="recurring-body"
+        className={`collapse-body${expanded ? '' : ' is-collapsed'}`}
+        hidden={!expanded}
+      >
+        <p className="panel__hint">
+          Define cargos recurrentes con fin manual o por cantidad de meses.
+        </p>
+
+        <ul className="list">
+          {recurring.length === 0 && (
+            <li className="list__empty">
+              No hay gastos recurrentes configurados.
+            </li>
+          )}
+          {recurring.map((item) => (
+            <li key={item.id} className="list__item">
+              <div className="list__main">
+                <div className="list__title-row">
+                  <strong>{item.title}</strong>
+                  <span className="chip chip--kind">{KIND_LABEL[item.kind]}</span>
+                  <span
+                    className={`chip chip--status chip--${item.active ? 'en_curso' : 'pendiente'}`}
+                  >
+                    {item.active ? 'Activo' : 'Detenido'}
+                  </span>
+                </div>
+                <div className="list__meta">
+                  <span>{item.category}</span>
+                  {item.day != null && <span>Día {item.day}</span>}
+                  <span>{recurringEndLabel(item, monthKey)}</span>
+                  {item.plannedAmount != null && (
+                    <span>Est. {formatMoney(item.plannedAmount)}</span>
+                  )}
+                </div>
               </div>
-              <div className="list__meta">
-                <span>{item.category}</span>
-                {item.day != null && <span>Día {item.day}</span>}
-                <span>{recurringEndLabel(item, monthKey)}</span>
-                {item.plannedAmount != null && (
-                  <span>Est. {formatMoney(item.plannedAmount)}</span>
+              <div className="list__ops">
+                {item.active && (
+                  <button
+                    type="button"
+                    className="btn btn--tiny"
+                    onClick={() => onUpdate(item.id, { active: false })}
+                  >
+                    Detener
+                  </button>
                 )}
-              </div>
-            </div>
-            <div className="list__ops">
-              {item.active && (
                 <button
                   type="button"
                   className="btn btn--tiny"
-                  onClick={() => onUpdate(item.id, { active: false })}
+                  onClick={() => startEdit(item)}
                 >
-                  Detener
+                  Editar
                 </button>
-              )}
-              <button
-                type="button"
-                className="btn btn--tiny"
-                onClick={() => startEdit(item)}
-              >
-                Editar
-              </button>
-              <button
-                type="button"
-                className="btn btn--tiny btn--danger"
-                onClick={() => onRemove(item.id)}
-              >
-                Borrar
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
+                <button
+                  type="button"
+                  className="btn btn--tiny btn--danger"
+                  onClick={() => onRemove(item.id)}
+                >
+                  Borrar
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
 
       <FormSheet
         open={open}
@@ -304,16 +327,6 @@ export function RecurringExpensesSection({
           </div>
         </form>
       </FormSheet>
-    </>
-  )
-
-  if (embedded) {
-    return <div className="recurring-block">{content}</div>
-  }
-
-  return (
-    <section className="panel panel--nested" aria-labelledby="recurring-title">
-      {content}
     </section>
   )
 }
