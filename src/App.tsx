@@ -60,6 +60,7 @@ function AuthenticatedApp({
   const [workSection, setWorkSection] = useState<WorkSection>('encargos')
   const [trabajoMenuOpen, setTrabajoMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [ready, setReady] = useState(false)
   const [sidebarExpanded, setSidebarExpanded] = useState(readSidebarExpanded)
   const userMenuRef = useRef<HTMLDivElement>(null)
@@ -108,6 +109,15 @@ function AuthenticatedApp({
     }
   }, [userMenuOpen])
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') setMobileMenuOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [mobileMenuOpen])
+
   const sideNavItems: { id: Exclude<ViewId, 'cuenta'>; label: string }[] = [
     { id: 'dashboard', label: 'Inicio' },
     ...MENU_ITEMS.map((item) => ({
@@ -125,8 +135,27 @@ function AuthenticatedApp({
     })),
   ]
 
+  function isNarrowViewport() {
+    return (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(max-width: 760px)').matches
+    )
+  }
+
   function toggleSidebar() {
     setSidebarExpanded((open) => !open)
+  }
+
+  function toggleMenu() {
+    if (isNarrowViewport()) {
+      setMobileMenuOpen((open) => !open)
+      return
+    }
+    toggleSidebar()
+  }
+
+  function closeMobileMenu() {
+    setMobileMenuOpen(false)
   }
 
   function openView(next: ViewId) {
@@ -138,18 +167,29 @@ function AuthenticatedApp({
     }
     setView(next)
     setTrabajoMenuOpen(false)
+    setMobileMenuOpen(false)
   }
 
   function openWorkSection(section: WorkSection) {
     setView('trabajo')
     setWorkSection(section)
     setTrabajoMenuOpen(true)
+    setMobileMenuOpen(false)
   }
 
   return (
     <div
-      className={`shell shell--app${ready ? ' is-ready' : ''}${sidebarExpanded ? '' : ' is-sidebar-collapsed'}`}
+      className={`shell shell--app${ready ? ' is-ready' : ''}${sidebarExpanded ? '' : ' is-sidebar-collapsed'}${mobileMenuOpen ? ' is-mobile-menu-open' : ''}`}
     >
+      {mobileMenuOpen && (
+        <button
+          type="button"
+          className="sidebar-backdrop"
+          aria-label="Cerrar menú"
+          onClick={closeMobileMenu}
+        />
+      )}
+
       <aside className="sidebar" aria-label="Menú lateral">
         <div className="sidebar__top">
           <button
@@ -173,6 +213,14 @@ function AuthenticatedApp({
             onClick={toggleSidebar}
           >
             {sidebarExpanded ? '‹' : '›'}
+          </button>
+          <button
+            type="button"
+            className="btn btn--icon sidebar__close-mobile"
+            aria-label="Cerrar menú"
+            onClick={closeMobileMenu}
+          >
+            ×
           </button>
         </div>
 
@@ -244,12 +292,12 @@ function AuthenticatedApp({
               type="button"
               className="btn btn--icon topbar__menu-toggle"
               aria-label={
-                sidebarExpanded
-                  ? 'Contraer menú lateral'
-                  : 'Expandir menú lateral'
+                mobileMenuOpen || sidebarExpanded
+                  ? 'Cerrar menú lateral'
+                  : 'Abrir menú lateral'
               }
-              aria-expanded={sidebarExpanded}
-              onClick={toggleSidebar}
+              aria-expanded={mobileMenuOpen || sidebarExpanded}
+              onClick={toggleMenu}
             >
               ≡
             </button>

@@ -1528,6 +1528,14 @@ em {
   }
 }
 
+.sidebar__close-mobile {
+  display: none;
+}
+
+.sidebar-backdrop {
+  display: none;
+}
+
 .mobile-nav {
   display: none;
 }
@@ -1562,8 +1570,69 @@ em {
     gap: 0;
   }
 
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    border: 0;
+    background: rgba(8, 10, 14, 0.62);
+    backdrop-filter: blur(2px);
+  }
+
   .sidebar {
+    display: grid;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 60;
+    width: min(18rem, 88vw);
+    min-height: 100dvh;
+    margin: 0;
+    padding: 0.9rem 0.75rem;
+    border-radius: 0 18px 18px 0;
+    transform: translateX(-105%);
+    transition: transform 0.28s ease;
+    overflow: auto;
+  }
+
+  .shell--app.is-mobile-menu-open .sidebar,
+  .shell--app.is-sidebar-collapsed.is-mobile-menu-open .sidebar {
+    transform: translateX(0);
+  }
+
+  .shell--app.is-sidebar-collapsed .sidebar__brand-text,
+  .shell--app.is-sidebar-collapsed .sidebar__label,
+  .shell--app.is-sidebar-collapsed .sidebar__chevron {
+    display: inline;
+  }
+
+  .shell--app.is-sidebar-collapsed .sidebar__brand {
+    justify-content: flex-start;
+    width: auto;
+  }
+
+  .shell--app.is-sidebar-collapsed .sidebar__btn,
+  .shell--app.is-sidebar-collapsed .sidebar__subbtn {
+    justify-content: flex-start;
+    padding: 0.72rem 0.75rem;
+  }
+
+  .shell--app.is-sidebar-collapsed .sidebar__subnav {
+    margin-left: 0.55rem;
+    padding-left: 0.55rem;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .sidebar__toggle {
     display: none;
+  }
+
+  .btn.sidebar__close-mobile {
+    display: grid;
+    width: 2.1rem;
+    height: 2.1rem;
   }
 
   .shell__main {
@@ -1582,22 +1651,11 @@ em {
   }
 
   .topbar__brand {
-    display: flex;
+    display: none;
   }
 
   .btn.topbar__menu-toggle {
-    display: none;
-  }
-
-  .topbar__brand .brand {
-    display: none;
-  }
-
-  .topbar__logo--compact {
     display: grid;
-    width: 2.1rem;
-    height: 2.1rem;
-    font-size: 0.95rem;
   }
 
   .topbar__stats {
