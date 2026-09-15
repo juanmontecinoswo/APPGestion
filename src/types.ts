@@ -102,12 +102,30 @@ export interface WorkItem {
   createdAt: string
 }
 
+export interface WorkNote {
+  id: string
+  title: string
+  body: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface WorkLink {
+  id: string
+  title: string
+  url: string
+  description: string
+  createdAt: string
+}
+
 export interface AppState {
   tasks: Task[]
   expenses: Expense[]
   recurringExpenses: RecurringExpense[]
   reminders: Reminder[]
   workItems: WorkItem[]
+  workNotes: WorkNote[]
+  workLinks: WorkLink[]
 }
 
 export const EXPENSE_CATEGORIES = [

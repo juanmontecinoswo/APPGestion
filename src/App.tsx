@@ -148,9 +148,17 @@ function AuthenticatedApp({
           <WorkPanel
             monthKey={monthKey}
             workItems={store.monthWork}
+            workNotes={store.workNotes}
+            workLinks={store.workLinks}
             onAdd={store.addWorkItem}
             onUpdate={store.updateWorkItem}
             onRemove={store.removeWorkItem}
+            onAddNote={store.addWorkNote}
+            onUpdateNote={store.updateWorkNote}
+            onRemoveNote={store.removeWorkNote}
+            onAddLink={store.addWorkLink}
+            onUpdateLink={store.updateWorkLink}
+            onRemoveLink={store.removeWorkLink}
           />
         )}
         {view === 'cuenta' && (

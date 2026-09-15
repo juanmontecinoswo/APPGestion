@@ -6,6 +6,8 @@ import type {
   Reminder,
   Task,
   WorkItem,
+  WorkLink,
+  WorkNote,
 } from '../types'
 
 const STORAGE_PREFIX = 'mesura-data-v1-'
@@ -254,7 +256,18 @@ function seedState(monthKey: string): AppState {
     },
   ]
 
-  return { tasks, expenses, recurringExpenses, reminders, workItems }
+  const workNotes: WorkNote[] = []
+  const workLinks: WorkLink[] = []
+
+  return {
+    tasks,
+    expenses,
+    recurringExpenses,
+    reminders,
+    workItems,
+    workNotes,
+    workLinks,
+  }
 }
 
 function migrateLegacyRecurring(
@@ -308,6 +321,20 @@ function normalizeState(raw: Partial<AppState>): AppState {
     recurringExpenses: legacy.recurringExpenses,
     reminders: raw.reminders ?? [],
     workItems: raw.workItems ?? [],
+    workNotes: (raw.workNotes ?? []).map((note) => ({
+      id: note.id,
+      title: note.title ?? '',
+      body: note.body ?? '',
+      createdAt: note.createdAt ?? new Date().toISOString(),
+      updatedAt: note.updatedAt ?? note.createdAt ?? new Date().toISOString(),
+    })),
+    workLinks: (raw.workLinks ?? []).map((link) => ({
+      id: link.id,
+      title: link.title ?? '',
+      url: link.url ?? '',
+      description: link.description ?? '',
+      createdAt: link.createdAt ?? new Date().toISOString(),
+    })),
   }
 }
 
@@ -390,6 +417,28 @@ export function createReminder(
 export function createWorkItem(
   partial: Omit<WorkItem, 'id' | 'createdAt'>,
 ): WorkItem {
+  return {
+    ...partial,
+    id: uid(),
+    createdAt: new Date().toISOString(),
+  }
+}
+
+export function createWorkNote(
+  partial: Omit<WorkNote, 'id' | 'createdAt' | 'updatedAt'>,
+): WorkNote {
+  const now = new Date().toISOString()
+  return {
+    ...partial,
+    id: uid(),
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+export function createWorkLink(
+  partial: Omit<WorkLink, 'id' | 'createdAt'>,
+): WorkLink {
   return {
     ...partial,
     id: uid(),

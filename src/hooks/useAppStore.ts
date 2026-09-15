@@ -6,6 +6,8 @@ import type {
   Reminder,
   Task,
   WorkItem,
+  WorkLink,
+  WorkNote,
 } from '../types'
 import {
   ensureMonthlyExpenses,
@@ -42,10 +44,10 @@ export function useAppStore(userId: string, activeMonth: string) {
       ) {
         return prev
       }
-      const next = {
+      const next: AppState = {
+        ...prev,
         tasks,
         expenses,
-        recurringExpenses: prev.recurringExpenses,
         reminders,
         workItems,
       }
@@ -189,11 +191,55 @@ export function useAppStore(userId: string, activeMonth: string) {
     }))
   }
 
+  function addWorkNote(note: WorkNote) {
+    setState((s) => ({ ...s, workNotes: [note, ...s.workNotes] }))
+  }
+
+  function updateWorkNote(id: string, patch: Partial<WorkNote>) {
+    setState((s) => ({
+      ...s,
+      workNotes: s.workNotes.map((note) =>
+        note.id === id
+          ? { ...note, ...patch, updatedAt: new Date().toISOString() }
+          : note,
+      ),
+    }))
+  }
+
+  function removeWorkNote(id: string) {
+    setState((s) => ({
+      ...s,
+      workNotes: s.workNotes.filter((note) => note.id !== id),
+    }))
+  }
+
+  function addWorkLink(link: WorkLink) {
+    setState((s) => ({ ...s, workLinks: [link, ...s.workLinks] }))
+  }
+
+  function updateWorkLink(id: string, patch: Partial<WorkLink>) {
+    setState((s) => ({
+      ...s,
+      workLinks: s.workLinks.map((link) =>
+        link.id === id ? { ...link, ...patch } : link,
+      ),
+    }))
+  }
+
+  function removeWorkLink(id: string) {
+    setState((s) => ({
+      ...s,
+      workLinks: s.workLinks.filter((link) => link.id !== id),
+    }))
+  }
+
   return {
     monthTasks,
     monthExpenses,
     monthReminders,
     monthWork,
+    workNotes: state.workNotes,
+    workLinks: state.workLinks,
     recurringExpenses: state.recurringExpenses,
     addTask,
     updateTask,
@@ -212,5 +258,11 @@ export function useAppStore(userId: string, activeMonth: string) {
     addWorkItem,
     updateWorkItem,
     removeWorkItem,
+    addWorkNote,
+    updateWorkNote,
+    removeWorkNote,
+    addWorkLink,
+    updateWorkLink,
+    removeWorkLink,
   }
 }
