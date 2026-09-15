@@ -1,4 +1,7 @@
+import type { FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import {
+  createTask,
   daysInMonth,
   formatMoney,
   formatMonthLabel,
@@ -7,7 +10,14 @@ import {
   paidExpenseTotal,
   shiftMonth,
 } from '../lib/storage'
-import type { Expense, Reminder, Task, ViewId, WorkItem } from '../types'
+import type {
+  Expense,
+  Importance,
+  Reminder,
+  Task,
+  ViewId,
+  WorkItem,
+} from '../types'
 
 interface Props {
   monthKey: string
@@ -18,6 +28,7 @@ interface Props {
   workItems: WorkItem[]
   onToggleTask: (id: string) => void
   onToggleReminder: (id: string) => void
+  onAddTask: (task: Task) => void
   onOpen: (view: Exclude<ViewId, 'dashboard' | 'cuenta'>) => void
 }
 
@@ -27,13 +38,18 @@ function buildCalendar(monthKey: string) {
   const { year, month } = parseMonthKey(monthKey)
   const total = daysInMonth(monthKey)
   const first = new Date(year, month - 1, 1)
-  // Monday-based offset
   const offset = (first.getDay() + 6) % 7
   const cells: Array<number | null> = []
   for (let i = 0; i < offset; i++) cells.push(null)
   for (let d = 1; d <= total; d++) cells.push(d)
   while (cells.length % 7 !== 0) cells.push(null)
   return cells
+}
+
+function defaultSelectedDay(monthKey: string): number {
+  const todayKey = monthKeyFromDate()
+  if (monthKey === todayKey) return new Date().getDate()
+  return 1
 }
 
 export function HomeBoard({
@@ -45,22 +61,60 @@ export function HomeBoard({
   workItems,
   onToggleTask,
   onToggleReminder,
+  onAddTask,
   onOpen,
 }: Props) {
+  const [selectedDay, setSelectedDay] = useState(() =>
+    defaultSelectedDay(monthKey),
+  )
+  const [newTitle, setNewTitle] = useState('')
+  const [importance, setImportance] = useState<Importance>('media')
+
   const monthLabel = formatMonthLabel(monthKey)
   const cells = buildCalendar(monthKey)
   const todayKey = monthKeyFromDate()
   const todayDay = new Date().getDate()
+  const maxDay = daysInMonth(monthKey)
   const unpaid = expenses.filter((e) => !e.paid)
   const pendingTasks = tasks.filter((t) => !t.done)
   const activeReminders = reminders.filter((r) => !r.done)
   const openWork = workItems.filter((w) => w.status !== 'hecho')
   const paidTotal = paidExpenseTotal(expenses)
 
+  const dayTasks = tasks
+    .filter((t) => t.dueDay === selectedDay)
+    .sort((a, b) => Number(a.done) - Number(b.done))
+
   const markedDays = new Set<number>()
   for (const t of tasks) if (t.dueDay != null) markedDays.add(t.dueDay)
   for (const e of expenses) if (e.day != null) markedDays.add(e.day)
   for (const r of reminders) if (r.dueDay != null) markedDays.add(r.dueDay)
+
+  useEffect(() => {
+    setSelectedDay(defaultSelectedDay(monthKey))
+    setNewTitle('')
+  }, [monthKey])
+
+  useEffect(() => {
+    if (selectedDay > maxDay) setSelectedDay(maxDay)
+  }, [selectedDay, maxDay])
+
+  function handleAddTask(e: FormEvent) {
+    e.preventDefault()
+    if (!newTitle.trim()) return
+    onAddTask(
+      createTask({
+        title: newTitle.trim(),
+        notes: '',
+        importance,
+        recurrence: 'fija',
+        monthKey,
+        dueDay: selectedDay,
+      }),
+    )
+    setNewTitle('')
+    setImportance('media')
+  }
 
   return (
     <div className="home-board">
@@ -108,16 +162,86 @@ export function HomeBoard({
               return <span key={`e-${i}`} className="cal-grid__empty" />
             }
             const isToday = monthKey === todayKey && day === todayDay
+            const isSelected = day === selectedDay
             const hasMark = markedDays.has(day)
             return (
-              <span
+              <button
                 key={day}
-                className={`cal-grid__day${isToday ? ' is-today' : ''}${hasMark ? ' has-mark' : ''}`}
+                type="button"
+                className={`cal-grid__day${isToday ? ' is-today' : ''}${isSelected ? ' is-selected' : ''}${hasMark ? ' has-mark' : ''}`}
+                aria-pressed={isSelected}
+                aria-label={`Día ${day}`}
+                onClick={() => setSelectedDay(day)}
               >
                 {day}
-              </span>
+              </button>
             )
           })}
+        </div>
+
+        <div className="cal-day-panel">
+          <header className="cal-day-panel__head">
+            <div>
+              <p className="board-card__eyebrow">Tareas del día</p>
+              <h3>Día {selectedDay}</h3>
+            </div>
+            <span className="cal-day-panel__count">
+              {dayTasks.length}{' '}
+              {dayTasks.length === 1 ? 'tarea' : 'tareas'}
+            </span>
+          </header>
+
+          <ul className="board-list">
+            {dayTasks.length === 0 && (
+              <li className="board-list__empty">
+                No hay tareas para este día.
+              </li>
+            )}
+            {dayTasks.map((task) => (
+              <li
+                key={task.id}
+                className={`board-list__item${task.done ? ' is-done' : ''}`}
+              >
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={task.done}
+                    onChange={() => onToggleTask(task.id)}
+                    aria-label={`Marcar ${task.title}`}
+                  />
+                  <span className="check__box" aria-hidden="true" />
+                </label>
+                <div>
+                  <strong>{task.title}</strong>
+                  <span>{task.importance}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <form className="cal-add" onSubmit={handleAddTask}>
+            <p className="board-card__eyebrow">Agregar tarea al día {selectedDay}</p>
+            <input
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder="Ej. Llamar al banco"
+              required
+            />
+            <div className="cal-add__row">
+              <select
+                value={importance}
+                onChange={(e) => setImportance(e.target.value as Importance)}
+                aria-label="Importancia"
+              >
+                <option value="alta">Alta</option>
+                <option value="media">Media</option>
+                <option value="baja">Baja</option>
+              </select>
+              <button type="submit" className="btn btn--primary">
+                Agregar
+              </button>
+            </div>
+          </form>
         </div>
 
         <div className="cal-pay">

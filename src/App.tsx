@@ -107,6 +107,7 @@ function AuthenticatedApp({
             workItems={store.monthWork}
             onToggleTask={store.toggleTask}
             onToggleReminder={store.toggleReminder}
+            onAddTask={store.addTask}
             onOpen={setView}
           />
         )}
