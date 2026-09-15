@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { UserAccount, ViewId, WorkSection } from './types'
 import { MENU_ITEMS, WORK_SECTIONS } from './types'
 import { monthKeyFromDate } from './lib/storage'
@@ -59,9 +59,16 @@ function AuthenticatedApp({
   const [view, setView] = useState<ViewId>('dashboard')
   const [workSection, setWorkSection] = useState<WorkSection>('encargos')
   const [trabajoMenuOpen, setTrabajoMenuOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [ready, setReady] = useState(false)
   const [sidebarExpanded, setSidebarExpanded] = useState(readSidebarExpanded)
+  const userMenuRef = useRef<HTMLDivElement>(null)
   const store = useAppStore(user.id, monthKey)
+
+  const pendingTasks = store.monthTasks.filter((task) => !task.done).length
+  const pendingPayments = store.monthExpenses.filter(
+    (expense) => !expense.paid,
+  ).length
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setReady(true))
@@ -82,6 +89,24 @@ function AuthenticatedApp({
   useEffect(() => {
     if (view !== 'trabajo') setTrabajoMenuOpen(false)
   }, [view])
+
+  useEffect(() => {
+    if (!userMenuOpen) return
+    function onPointerDown(event: MouseEvent) {
+      if (!userMenuRef.current?.contains(event.target as Node)) {
+        setUserMenuOpen(false)
+      }
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') setUserMenuOpen(false)
+    }
+    window.addEventListener('mousedown', onPointerDown)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('mousedown', onPointerDown)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [userMenuOpen])
 
   const sideNavItems: { id: Exclude<ViewId, 'cuenta'>; label: string }[] = [
     { id: 'dashboard', label: 'Inicio' },
@@ -243,30 +268,73 @@ function AuthenticatedApp({
             </button>
           </div>
 
-          <div className="topbar__user" aria-label="Información de usuario">
-            <div className="topbar__avatar" aria-hidden="true">
-              {userInitials(user.displayName)}
-            </div>
-            <div className="topbar__meta">
-              <strong>{user.displayName}</strong>
-              <span>@{user.username}</span>
-            </div>
+          <div className="topbar__stats" aria-label="Resumen del mes">
             <button
               type="button"
-              className="btn btn--icon topbar__action"
-              aria-label="Cuenta"
-              onClick={() => setView('cuenta')}
+              className="topbar-stat"
+              onClick={() => openView('tareas')}
             >
-              ⚙
+              <span className="topbar-stat__value">{pendingTasks}</span>
+              <span className="topbar-stat__label">
+                {pendingTasks === 1 ? 'tarea pendiente' : 'tareas pendientes'}
+              </span>
             </button>
             <button
               type="button"
-              className="btn btn--icon topbar__action"
-              aria-label="Cerrar sesión"
-              onClick={onLogout}
+              className="topbar-stat topbar-stat--pay"
+              onClick={() => openView('finanzas')}
             >
-              ⎋
+              <span className="topbar-stat__value">{pendingPayments}</span>
+              <span className="topbar-stat__label">
+                {pendingPayments === 1 ? 'pago pendiente' : 'pagos pendientes'}
+              </span>
             </button>
+          </div>
+
+          <div className="topbar__user-wrap" ref={userMenuRef}>
+            <button
+              type="button"
+              className={`topbar__avatar-btn${userMenuOpen ? ' is-open' : ''}`}
+              aria-label="Abrir información de usuario"
+              aria-expanded={userMenuOpen}
+              aria-haspopup="menu"
+              onClick={() => setUserMenuOpen((open) => !open)}
+            >
+              <span className="topbar__avatar" aria-hidden="true">
+                {userInitials(user.displayName)}
+              </span>
+            </button>
+
+            {userMenuOpen && (
+              <div className="user-menu" role="menu">
+                <div className="user-menu__head">
+                  <strong>{user.displayName}</strong>
+                  <span>@{user.username}</span>
+                </div>
+                <button
+                  type="button"
+                  className="user-menu__item"
+                  role="menuitem"
+                  onClick={() => {
+                    setUserMenuOpen(false)
+                    setView('cuenta')
+                  }}
+                >
+                  Cuenta
+                </button>
+                <button
+                  type="button"
+                  className="user-menu__item user-menu__item--danger"
+                  role="menuitem"
+                  onClick={() => {
+                    setUserMenuOpen(false)
+                    onLogout()
+                  }}
+                >
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
           </div>
         </header>
 
