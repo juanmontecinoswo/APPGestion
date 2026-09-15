@@ -31,7 +31,7 @@ export function RecurringExpensesSection({
   onUpdate,
   onRemove,
 }: Props) {
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(false)
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [plannedAmount, setPlannedAmount] = useState('')
@@ -129,7 +129,10 @@ export function RecurringExpensesSection({
   }
 
   return (
-    <section className="panel panel--recurring" aria-labelledby="recurring-title">
+    <section
+      className={`panel panel--recurring panel--fold${!expanded ? ' is-folded' : ''}`}
+      aria-labelledby="recurring-title"
+    >
       <header className="panel__head panel__head--collapse">
         <button
           type="button"
@@ -144,8 +147,8 @@ export function RecurringExpensesSection({
           <span className="collapse-trigger__text">
             <strong id="recurring-title">Gastos fijos y mensuales</strong>
             <span>
-              {recurring.length} recurrentes · toca para{' '}
-              {expanded ? 'contraer' : 'expandir'}
+              {recurring.length} recurrentes
+              {expanded ? ' · toca para contraer' : ''}
             </span>
           </span>
         </button>

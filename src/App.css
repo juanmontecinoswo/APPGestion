@@ -570,9 +570,17 @@ em {
 .panel__head--row,
 .panel__head--collapse {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
+}
+
+.panel--fold:not(.is-folded) .panel__head--collapse {
+  margin-bottom: 0.85rem;
+}
+
+.panel--fold:not(.is-folded) .collapse-trigger__text strong {
+  font-size: 1.1rem;
 }
 
 .panel__head h2,
@@ -597,7 +605,7 @@ em {
 
 .finanzas-stack {
   display: grid;
-  gap: 1rem;
+  gap: 0.55rem;
 }
 
 .panel--registry {
@@ -620,6 +628,63 @@ em {
 
 .panel--recurring {
   border-color: rgba(110, 168, 255, 0.2);
+}
+
+.panel--fold.is-folded {
+  padding: 0.45rem 0.7rem;
+  border-radius: 14px;
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(42, 47, 56, 0.72);
+  box-shadow: none;
+}
+
+.panel--fold.is-folded .panel__head--collapse {
+  margin-bottom: 0;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.panel--fold.is-folded .collapse-trigger {
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.1rem 0;
+}
+
+.panel--fold.is-folded .collapse-trigger__chevron {
+  font-size: 0.85rem;
+  line-height: 1;
+  width: 0.85rem;
+  opacity: 0.75;
+}
+
+.panel--fold.is-folded .collapse-trigger__text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.55rem;
+}
+
+.panel--fold.is-folded .collapse-trigger__text strong {
+  font-size: 0.92rem;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.panel--fold.is-folded .collapse-trigger__text span:last-child {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.panel--fold.is-folded .btn--add {
+  width: 1.85rem;
+  height: 1.85rem;
+  font-size: 1.15rem;
+  box-shadow: none;
+  opacity: 0.88;
+}
+
+.panel--fold.is-folded .btn--add:hover {
+  opacity: 1;
 }
 
 .work-extras {

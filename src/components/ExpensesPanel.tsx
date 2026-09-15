@@ -53,7 +53,7 @@ export function ExpensesPanel({
   onUpdateRecurring,
   onRemoveRecurring,
 }: Props) {
-  const [allExpanded, setAllExpanded] = useState(true)
+  const [allExpanded, setAllExpanded] = useState(false)
   const [open, setOpen] = useState(false)
   const [payOpen, setPayOpen] = useState(false)
   const [title, setTitle] = useState('')
@@ -180,7 +180,10 @@ export function ExpensesPanel({
 
   return (
     <div className="finanzas-stack">
-      <section className="panel panel--registry" aria-labelledby="all-expenses-title">
+      <section
+        className={`panel panel--registry panel--fold${!allExpanded ? ' is-folded' : ''}`}
+        aria-labelledby="all-expenses-title"
+      >
         <header className="panel__head panel__head--collapse">
           <button
             type="button"
@@ -195,8 +198,8 @@ export function ExpensesPanel({
             <span className="collapse-trigger__text">
               <strong id="all-expenses-title">Todos los gastos</strong>
               <span>
-                {expenses.length} cargos · toca para{' '}
-                {allExpanded ? 'contraer' : 'expandir'}
+                {expenses.length} cargos
+                {allExpanded ? ' · toca para contraer' : ''}
               </span>
             </span>
           </button>
