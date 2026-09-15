@@ -41,8 +41,24 @@ function AuthenticatedApp({
     return () => cancelAnimationFrame(id)
   }, [])
 
+  const mobileNavItems: { id: ViewId; label: string; icon: string }[] = [
+    { id: 'dashboard', label: 'Inicio', icon: '⌂' },
+    ...MENU_ITEMS.map((item) => ({
+      id: item.id as ViewId,
+      label: item.shortLabel,
+      icon:
+        item.id === 'finanzas'
+          ? '$'
+          : item.id === 'tareas'
+            ? '✓'
+            : item.id === 'recordatorios'
+              ? '◷'
+              : '▣',
+    })),
+  ]
+
   return (
-    <div className={`shell${ready ? ' is-ready' : ''}`}>
+    <div className={`shell shell--app${ready ? ' is-ready' : ''}`}>
       <header className="topbar">
         <button
           type="button"
@@ -165,6 +181,23 @@ function AuthenticatedApp({
           <AccountPanel user={user} onUserChanged={onUserChanged} />
         )}
       </main>
+
+      <nav className="mobile-nav" aria-label="Navegación móvil">
+        {mobileNavItems.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={`mobile-nav__btn${view === item.id ? ' is-active' : ''}`}
+            aria-current={view === item.id ? 'page' : undefined}
+            onClick={() => setView(item.id)}
+          >
+            <span className="mobile-nav__icon" aria-hidden="true">
+              {item.icon}
+            </span>
+            <span className="mobile-nav__label">{item.label}</span>
+          </button>
+        ))}
+      </nav>
     </div>
   )
 }

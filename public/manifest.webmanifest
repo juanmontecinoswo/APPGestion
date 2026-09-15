@@ -1,0 +1,18 @@
+{
+  "name": "Mesura",
+  "short_name": "Mesura",
+  "description": "Finanzas, tareas y trabajo del mes en pesos chilenos",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1d22",
+  "theme_color": "#1a1d22",
+  "lang": "es-CL",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -142,26 +142,31 @@ export const EXPENSE_CATEGORIES = [
 export const MENU_ITEMS: {
   id: Exclude<ViewId, 'dashboard' | 'cuenta'>
   label: string
+  shortLabel: string
   blurb: string
 }[] = [
   {
     id: 'finanzas',
     label: 'Finanzas',
+    shortLabel: 'Gastos',
     blurb: 'Controla cargos únicos, fijos y mensuales en pesos chilenos.',
   },
   {
     id: 'tareas',
     label: 'Tareas',
+    shortLabel: 'Tareas',
     blurb: 'Organiza pendientes con importancia alta, media o baja.',
   },
   {
     id: 'recordatorios',
     label: 'Recordatorios',
+    shortLabel: 'Avisos',
     blurb: 'Avisos del mes con día y hora para no olvidar nada.',
   },
   {
     id: 'trabajo',
     label: 'Trabajo',
+    shortLabel: 'Trabajo',
     blurb: 'Seguimiento de encargos, proyectos y estados laborales.',
   },
 ]
