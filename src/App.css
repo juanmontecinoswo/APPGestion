@@ -183,6 +183,13 @@ em {
     border-color 0.2s ease;
 }
 
+.sidebar__chevron {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1;
+}
+
 .sidebar__btn:hover {
   color: var(--ink);
   background: rgba(255, 255, 255, 0.04);
@@ -205,6 +212,10 @@ em {
 
 .sidebar__subnav.is-open {
   display: grid;
+}
+
+.sidebar__subnav[hidden] {
+  display: none !important;
 }
 
 .sidebar__subbtn {
@@ -256,7 +267,8 @@ em {
 }
 
 .shell--app.is-sidebar-collapsed .sidebar__brand-text,
-.shell--app.is-sidebar-collapsed .sidebar__label {
+.shell--app.is-sidebar-collapsed .sidebar__label,
+.shell--app.is-sidebar-collapsed .sidebar__chevron {
   display: none;
 }
 

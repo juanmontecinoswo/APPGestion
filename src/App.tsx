@@ -58,6 +58,7 @@ function AuthenticatedApp({
   const [monthKey, setMonthKey] = useState(() => monthKeyFromDate())
   const [view, setView] = useState<ViewId>('dashboard')
   const [workSection, setWorkSection] = useState<WorkSection>('encargos')
+  const [trabajoMenuOpen, setTrabajoMenuOpen] = useState(false)
   const [ready, setReady] = useState(false)
   const [sidebarExpanded, setSidebarExpanded] = useState(readSidebarExpanded)
   const store = useAppStore(user.id, monthKey)
@@ -77,6 +78,10 @@ function AuthenticatedApp({
       /* ignore */
     }
   }, [sidebarExpanded])
+
+  useEffect(() => {
+    if (view !== 'trabajo') setTrabajoMenuOpen(false)
+  }, [view])
 
   const sideNavItems: { id: Exclude<ViewId, 'cuenta'>; label: string }[] = [
     { id: 'dashboard', label: 'Inicio' },
@@ -100,13 +105,20 @@ function AuthenticatedApp({
   }
 
   function openView(next: ViewId) {
+    if (next === 'trabajo') {
+      setView('trabajo')
+      setWorkSection('encargos')
+      setTrabajoMenuOpen((open) => (view === 'trabajo' ? !open : true))
+      return
+    }
     setView(next)
-    if (next === 'trabajo') setWorkSection('encargos')
+    setTrabajoMenuOpen(false)
   }
 
   function openWorkSection(section: WorkSection) {
     setView('trabajo')
     setWorkSection(section)
+    setTrabajoMenuOpen(true)
   }
 
   return (
@@ -146,18 +158,12 @@ function AuthenticatedApp({
                 type="button"
                 className={`sidebar__btn${
                   view === item.id && item.id !== 'trabajo' ? ' is-active' : ''
-                }${
-                  item.id === 'trabajo' &&
-                  view === 'trabajo' &&
-                  workSection === 'encargos'
-                    ? ' is-active'
-                    : ''
-                }`}
+                }${item.id === 'trabajo' && view === 'trabajo' ? ' is-active' : ''}`}
                 aria-current={
-                  view === item.id &&
-                  (item.id !== 'trabajo' || workSection === 'encargos')
-                    ? 'page'
-                    : undefined
+                  view === item.id && item.id !== 'trabajo' ? 'page' : undefined
+                }
+                aria-expanded={
+                  item.id === 'trabajo' ? trabajoMenuOpen : undefined
                 }
                 title={item.label}
                 onClick={() => openView(item.id)}
@@ -166,13 +172,19 @@ function AuthenticatedApp({
                   {NAV_ICONS[item.id]}
                 </span>
                 <span className="sidebar__label">{item.label}</span>
+                {item.id === 'trabajo' && (
+                  <span className="sidebar__chevron" aria-hidden="true">
+                    {trabajoMenuOpen ? '▾' : '▸'}
+                  </span>
+                )}
               </button>
 
               {item.id === 'trabajo' && (
                 <div
-                  className="sidebar__subnav is-open"
+                  className={`sidebar__subnav${trabajoMenuOpen ? ' is-open' : ''}`}
                   role="group"
                   aria-label="Submenús de trabajo"
+                  hidden={!trabajoMenuOpen}
                 >
                   {WORK_SECTIONS.map((section) => (
                     <button
