@@ -221,7 +221,10 @@ export function ExpensesPanel({
               <li className="list__empty">Aún no hay cargos este mes.</li>
             )}
             {allSorted.map((expense) => (
-              <li key={expense.id} className="list__item">
+              <li
+                key={expense.id}
+                className={`list__item list__item--expense${expense.paid ? ' is-paid' : ' is-pending'}`}
+              >
                 <div className="list__main">
                   <div className="list__title-row">
                     <strong>{expense.title}</strong>
@@ -229,9 +232,9 @@ export function ExpensesPanel({
                       {KIND_LABEL[expense.kind]}
                     </span>
                     <span
-                      className={`chip chip--status chip--${expense.paid ? 'hecho' : 'pendiente'}`}
+                      className={`chip chip--status ${expense.paid ? 'chip--pagado' : 'chip--por-pagar'}`}
                     >
-                      {expense.paid ? 'Pagado' : 'Por pagar'}
+                      {expense.paid ? 'Pagado' : 'Pendiente'}
                     </span>
                   </div>
                   <div className="list__meta">
@@ -241,7 +244,11 @@ export function ExpensesPanel({
                   </div>
                 </div>
                 <div className="list__side">
-                  <span className="amount">{amountLabel(expense)}</span>
+                  <span
+                    className={`amount${expense.paid ? ' amount--paid' : ' amount--pending'}`}
+                  >
+                    {amountLabel(expense)}
+                  </span>
                   <div className="list__ops">
                     <button
                       type="button"
@@ -289,12 +296,18 @@ export function ExpensesPanel({
             <li className="list__empty">Todo al día por ahora.</li>
           )}
           {unpaid.map((expense) => (
-            <li key={expense.id} className="list__item list__item--pay">
+            <li
+              key={expense.id}
+              className="list__item list__item--pay list__item--expense is-pending"
+            >
               <div className="list__main">
                 <div className="list__title-row">
                   <strong>{expense.title}</strong>
                   <span className="chip chip--kind">
                     {KIND_LABEL[expense.kind]}
+                  </span>
+                  <span className="chip chip--status chip--por-pagar">
+                    Pendiente
                   </span>
                 </div>
                 <div className="list__meta">

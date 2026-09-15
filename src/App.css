@@ -1297,6 +1297,24 @@ em {
   color: var(--accent);
 }
 
+.amount--paid {
+  color: var(--ok);
+}
+
+.amount--pending {
+  color: #e8c35a;
+}
+
+.list__item--expense.is-paid {
+  border-color: rgba(107, 207, 142, 0.28);
+  background: rgba(107, 207, 142, 0.08);
+}
+
+.list__item--expense.is-pending {
+  border-color: rgba(232, 195, 90, 0.32);
+  background: rgba(232, 195, 90, 0.08);
+}
+
 .chip {
   display: inline-flex;
   align-items: center;
@@ -1329,8 +1347,8 @@ em {
 }
 
 .chip--pendiente {
-  background: rgba(139, 149, 163, 0.16);
-  color: var(--muted);
+  background: rgba(232, 195, 90, 0.16);
+  color: #e8c35a;
 }
 
 .chip--en_curso {
@@ -1338,9 +1356,15 @@ em {
   color: var(--accent);
 }
 
-.chip--hecho {
-  background: rgba(107, 207, 142, 0.14);
+.chip--hecho,
+.chip--pagado {
+  background: rgba(107, 207, 142, 0.18);
   color: var(--ok);
+}
+
+.chip--por-pagar {
+  background: rgba(232, 195, 90, 0.18);
+  color: #e8c35a;
 }
 
 .check {
