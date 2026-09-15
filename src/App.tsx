@@ -13,6 +13,16 @@ import { WorkPanel } from './components/WorkPanel'
 import { AccountPanel } from './components/AccountPanel'
 import './App.css'
 
+const SIDEBAR_KEY = 'organizador-sidebar-v1'
+
+const NAV_ICONS: Record<Exclude<ViewId, 'cuenta'>, string> = {
+  dashboard: '⌂',
+  finanzas: '$',
+  tareas: '✓',
+  recordatorios: '◷',
+  trabajo: '▣',
+}
+
 function userInitials(name: string): string {
   return name
     .split(/\s+/)
@@ -20,6 +30,14 @@ function userInitials(name: string): string {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() ?? '')
     .join('')
+}
+
+function readSidebarExpanded(): boolean {
+  try {
+    return localStorage.getItem(SIDEBAR_KEY) !== 'collapsed'
+  } catch {
+    return true
+  }
 }
 
 function AuthenticatedApp({
@@ -34,6 +52,7 @@ function AuthenticatedApp({
   const [monthKey, setMonthKey] = useState(() => monthKeyFromDate())
   const [view, setView] = useState<ViewId>('dashboard')
   const [ready, setReady] = useState(false)
+  const [sidebarExpanded, setSidebarExpanded] = useState(readSidebarExpanded)
   const store = useAppStore(user.id, monthKey)
 
   useEffect(() => {
@@ -41,146 +60,212 @@ function AuthenticatedApp({
     return () => cancelAnimationFrame(id)
   }, [])
 
-  const mobileNavItems: { id: ViewId; label: string; icon: string }[] = [
-    { id: 'dashboard', label: 'Inicio', icon: '⌂' },
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        SIDEBAR_KEY,
+        sidebarExpanded ? 'expanded' : 'collapsed',
+      )
+    } catch {
+      /* ignore */
+    }
+  }, [sidebarExpanded])
+
+  const sideNavItems: { id: Exclude<ViewId, 'cuenta'>; label: string }[] = [
+    { id: 'dashboard', label: 'Inicio' },
     ...MENU_ITEMS.map((item) => ({
-      id: item.id as ViewId,
-      label: item.shortLabel,
-      icon:
-        item.id === 'finanzas'
-          ? '$'
-          : item.id === 'tareas'
-            ? '✓'
-            : item.id === 'recordatorios'
-              ? '◷'
-              : '▣',
+      id: item.id as Exclude<ViewId, 'cuenta'>,
+      label: item.label,
     })),
   ]
 
-  return (
-    <div className={`shell shell--app${ready ? ' is-ready' : ''}`}>
-      <header className="topbar">
-        <button
-          type="button"
-          className="topbar__brand"
-          onClick={() => setView('dashboard')}
-        >
-          <span className="topbar__logo" aria-hidden="true">
-            O
-          </span>
-          <span className="brand">Organizador</span>
-        </button>
+  const mobileNavItems: { id: ViewId; label: string; icon: string }[] = [
+    { id: 'dashboard', label: 'Inicio', icon: NAV_ICONS.dashboard },
+    ...MENU_ITEMS.map((item) => ({
+      id: item.id as ViewId,
+      label: item.shortLabel,
+      icon: NAV_ICONS[item.id],
+    })),
+  ]
 
-        <div className="topbar__user" aria-label="Información de usuario">
-          <div className="topbar__avatar" aria-hidden="true">
-            {userInitials(user.displayName)}
-          </div>
-          <div className="topbar__meta">
-            <strong>{user.displayName}</strong>
-            <span>@{user.username}</span>
-          </div>
+  function toggleSidebar() {
+    setSidebarExpanded((open) => !open)
+  }
+
+  return (
+    <div
+      className={`shell shell--app${ready ? ' is-ready' : ''}${sidebarExpanded ? '' : ' is-sidebar-collapsed'}`}
+    >
+      <aside className="sidebar" aria-label="Menú lateral">
+        <div className="sidebar__top">
           <button
             type="button"
-            className="btn btn--icon topbar__action"
-            aria-label="Cuenta"
-            onClick={() => setView('cuenta')}
+            className="sidebar__brand"
+            onClick={() => setView('dashboard')}
+            title="Inicio"
           >
-            ⚙
+            <span className="topbar__logo" aria-hidden="true">
+              O
+            </span>
+            <span className="sidebar__brand-text">Organizador</span>
           </button>
           <button
             type="button"
-            className="btn btn--icon topbar__action"
-            aria-label="Cerrar sesión"
-            onClick={onLogout}
+            className="btn btn--icon sidebar__toggle"
+            aria-label={
+              sidebarExpanded ? 'Contraer menú lateral' : 'Expandir menú lateral'
+            }
+            aria-expanded={sidebarExpanded}
+            onClick={toggleSidebar}
           >
-            ⎋
+            {sidebarExpanded ? '‹' : '›'}
           </button>
         </div>
-      </header>
 
-      <nav className="main-menu" aria-label="Menú principal">
-        {MENU_ITEMS.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={`main-menu__btn${view === item.id ? ' is-active' : ''}`}
-            aria-current={view === item.id ? 'page' : undefined}
-            onClick={() => setView(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </nav>
+        <nav className="sidebar__nav">
+          {sideNavItems.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`sidebar__btn${view === item.id ? ' is-active' : ''}`}
+              aria-current={view === item.id ? 'page' : undefined}
+              title={item.label}
+              onClick={() => setView(item.id)}
+            >
+              <span className="sidebar__icon" aria-hidden="true">
+                {NAV_ICONS[item.id]}
+              </span>
+              <span className="sidebar__label">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+      </aside>
 
-      <main className="workspace">
-        {view === 'dashboard' && (
-          <HomeBoard
-            monthKey={monthKey}
-            onMonthChange={setMonthKey}
-            tasks={store.monthTasks}
-            expenses={store.monthExpenses}
-            reminders={store.monthReminders}
-            workItems={store.monthWork}
-            onToggleTask={store.toggleTask}
-            onToggleReminder={store.toggleReminder}
-            onAddTask={store.addTask}
-            onOpen={setView}
-          />
-        )}
-        {view === 'finanzas' && (
-          <ExpensesPanel
-            monthKey={monthKey}
-            expenses={store.monthExpenses}
-            recurring={store.recurringExpenses}
-            onAdd={store.addExpense}
-            onUpdate={store.updateExpense}
-            onRemove={store.removeExpense}
-            onAddRecurring={store.addRecurring}
-            onUpdateRecurring={store.updateRecurring}
-            onRemoveRecurring={store.removeRecurring}
-          />
-        )}
-        {view === 'tareas' && (
-          <TasksPanel
-            monthKey={monthKey}
-            tasks={store.monthTasks}
-            onAdd={store.addTask}
-            onUpdate={store.updateTask}
-            onRemove={store.removeTask}
-            onToggle={store.toggleTask}
-          />
-        )}
-        {view === 'recordatorios' && (
-          <RemindersPanel
-            monthKey={monthKey}
-            reminders={store.monthReminders}
-            onAdd={store.addReminder}
-            onUpdate={store.updateReminder}
-            onRemove={store.removeReminder}
-            onToggle={store.toggleReminder}
-          />
-        )}
-        {view === 'trabajo' && (
-          <WorkPanel
-            monthKey={monthKey}
-            workItems={store.monthWork}
-            workNotes={store.workNotes}
-            workLinks={store.workLinks}
-            onAdd={store.addWorkItem}
-            onUpdate={store.updateWorkItem}
-            onRemove={store.removeWorkItem}
-            onAddNote={store.addWorkNote}
-            onUpdateNote={store.updateWorkNote}
-            onRemoveNote={store.removeWorkNote}
-            onAddLink={store.addWorkLink}
-            onUpdateLink={store.updateWorkLink}
-            onRemoveLink={store.removeWorkLink}
-          />
-        )}
-        {view === 'cuenta' && (
-          <AccountPanel user={user} onUserChanged={onUserChanged} />
-        )}
-      </main>
+      <div className="shell__main">
+        <header className="topbar">
+          <div className="topbar__leading">
+            <button
+              type="button"
+              className="btn btn--icon topbar__menu-toggle"
+              aria-label={
+                sidebarExpanded
+                  ? 'Contraer menú lateral'
+                  : 'Expandir menú lateral'
+              }
+              aria-expanded={sidebarExpanded}
+              onClick={toggleSidebar}
+            >
+              ≡
+            </button>
+            <button
+              type="button"
+              className="topbar__brand"
+              onClick={() => setView('dashboard')}
+            >
+              <span className="topbar__logo topbar__logo--compact" aria-hidden="true">
+                O
+              </span>
+              <span className="brand">Organizador</span>
+            </button>
+          </div>
+
+          <div className="topbar__user" aria-label="Información de usuario">
+            <div className="topbar__avatar" aria-hidden="true">
+              {userInitials(user.displayName)}
+            </div>
+            <div className="topbar__meta">
+              <strong>{user.displayName}</strong>
+              <span>@{user.username}</span>
+            </div>
+            <button
+              type="button"
+              className="btn btn--icon topbar__action"
+              aria-label="Cuenta"
+              onClick={() => setView('cuenta')}
+            >
+              ⚙
+            </button>
+            <button
+              type="button"
+              className="btn btn--icon topbar__action"
+              aria-label="Cerrar sesión"
+              onClick={onLogout}
+            >
+              ⎋
+            </button>
+          </div>
+        </header>
+
+        <main className="workspace">
+          {view === 'dashboard' && (
+            <HomeBoard
+              monthKey={monthKey}
+              onMonthChange={setMonthKey}
+              tasks={store.monthTasks}
+              expenses={store.monthExpenses}
+              reminders={store.monthReminders}
+              workItems={store.monthWork}
+              onToggleTask={store.toggleTask}
+              onToggleReminder={store.toggleReminder}
+              onAddTask={store.addTask}
+              onOpen={setView}
+            />
+          )}
+          {view === 'finanzas' && (
+            <ExpensesPanel
+              monthKey={monthKey}
+              expenses={store.monthExpenses}
+              recurring={store.recurringExpenses}
+              onAdd={store.addExpense}
+              onUpdate={store.updateExpense}
+              onRemove={store.removeExpense}
+              onAddRecurring={store.addRecurring}
+              onUpdateRecurring={store.updateRecurring}
+              onRemoveRecurring={store.removeRecurring}
+            />
+          )}
+          {view === 'tareas' && (
+            <TasksPanel
+              monthKey={monthKey}
+              tasks={store.monthTasks}
+              onAdd={store.addTask}
+              onUpdate={store.updateTask}
+              onRemove={store.removeTask}
+              onToggle={store.toggleTask}
+            />
+          )}
+          {view === 'recordatorios' && (
+            <RemindersPanel
+              monthKey={monthKey}
+              reminders={store.monthReminders}
+              onAdd={store.addReminder}
+              onUpdate={store.updateReminder}
+              onRemove={store.removeReminder}
+              onToggle={store.toggleReminder}
+            />
+          )}
+          {view === 'trabajo' && (
+            <WorkPanel
+              monthKey={monthKey}
+              workItems={store.monthWork}
+              workNotes={store.workNotes}
+              workLinks={store.workLinks}
+              onAdd={store.addWorkItem}
+              onUpdate={store.updateWorkItem}
+              onRemove={store.removeWorkItem}
+              onAddNote={store.addWorkNote}
+              onUpdateNote={store.updateWorkNote}
+              onRemoveNote={store.removeWorkNote}
+              onAddLink={store.addWorkLink}
+              onUpdateLink={store.updateWorkLink}
+              onRemoveLink={store.removeWorkLink}
+            />
+          )}
+          {view === 'cuenta' && (
+            <AccountPanel user={user} onUserChanged={onUserChanged} />
+          )}
+        </main>
+      </div>
 
       <nav className="mobile-nav" aria-label="Navegación móvil">
         {mobileNavItems.map((item) => (
