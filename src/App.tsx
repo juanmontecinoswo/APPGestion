@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { UserAccount, ViewId } from './types'
-import { MENU_ITEMS } from './types'
+import type { UserAccount, ViewId, WorkSection } from './types'
+import { MENU_ITEMS, WORK_SECTIONS } from './types'
 import { monthKeyFromDate } from './lib/storage'
 import { useAuth } from './hooks/useAuth'
 import { useAppStore } from './hooks/useAppStore'
@@ -21,6 +21,12 @@ const NAV_ICONS: Record<Exclude<ViewId, 'cuenta'>, string> = {
   tareas: '✓',
   recordatorios: '◷',
   trabajo: '▣',
+}
+
+const WORK_SECTION_ICONS: Record<WorkSection, string> = {
+  encargos: '▣',
+  notas: '✎',
+  links: '⛓',
 }
 
 function userInitials(name: string): string {
@@ -51,6 +57,7 @@ function AuthenticatedApp({
 }) {
   const [monthKey, setMonthKey] = useState(() => monthKeyFromDate())
   const [view, setView] = useState<ViewId>('dashboard')
+  const [workSection, setWorkSection] = useState<WorkSection>('encargos')
   const [ready, setReady] = useState(false)
   const [sidebarExpanded, setSidebarExpanded] = useState(readSidebarExpanded)
   const store = useAppStore(user.id, monthKey)
@@ -92,6 +99,16 @@ function AuthenticatedApp({
     setSidebarExpanded((open) => !open)
   }
 
+  function openView(next: ViewId) {
+    setView(next)
+    if (next === 'trabajo') setWorkSection('encargos')
+  }
+
+  function openWorkSection(section: WorkSection) {
+    setView('trabajo')
+    setWorkSection(section)
+  }
+
   return (
     <div
       className={`shell shell--app${ready ? ' is-ready' : ''}${sidebarExpanded ? '' : ' is-sidebar-collapsed'}`}
@@ -101,7 +118,7 @@ function AuthenticatedApp({
           <button
             type="button"
             className="sidebar__brand"
-            onClick={() => setView('dashboard')}
+            onClick={() => openView('dashboard')}
             title="Inicio"
           >
             <span className="topbar__logo" aria-hidden="true">
@@ -124,19 +141,61 @@ function AuthenticatedApp({
 
         <nav className="sidebar__nav">
           {sideNavItems.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`sidebar__btn${view === item.id ? ' is-active' : ''}`}
-              aria-current={view === item.id ? 'page' : undefined}
-              title={item.label}
-              onClick={() => setView(item.id)}
-            >
-              <span className="sidebar__icon" aria-hidden="true">
-                {NAV_ICONS[item.id]}
-              </span>
-              <span className="sidebar__label">{item.label}</span>
-            </button>
+            <div key={item.id} className="sidebar__group">
+              <button
+                type="button"
+                className={`sidebar__btn${
+                  view === item.id && item.id !== 'trabajo' ? ' is-active' : ''
+                }${
+                  item.id === 'trabajo' &&
+                  view === 'trabajo' &&
+                  workSection === 'encargos'
+                    ? ' is-active'
+                    : ''
+                }`}
+                aria-current={
+                  view === item.id &&
+                  (item.id !== 'trabajo' || workSection === 'encargos')
+                    ? 'page'
+                    : undefined
+                }
+                title={item.label}
+                onClick={() => openView(item.id)}
+              >
+                <span className="sidebar__icon" aria-hidden="true">
+                  {NAV_ICONS[item.id]}
+                </span>
+                <span className="sidebar__label">{item.label}</span>
+              </button>
+
+              {item.id === 'trabajo' && (
+                <div
+                  className="sidebar__subnav is-open"
+                  role="group"
+                  aria-label="Submenús de trabajo"
+                >
+                  {WORK_SECTIONS.map((section) => (
+                    <button
+                      key={section.id}
+                      type="button"
+                      className={`sidebar__subbtn${view === 'trabajo' && workSection === section.id ? ' is-active' : ''}`}
+                      aria-current={
+                        view === 'trabajo' && workSection === section.id
+                          ? 'page'
+                          : undefined
+                      }
+                      title={section.label}
+                      onClick={() => openWorkSection(section.id)}
+                    >
+                      <span className="sidebar__icon" aria-hidden="true">
+                        {WORK_SECTION_ICONS[section.id]}
+                      </span>
+                      <span className="sidebar__label">{section.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           ))}
         </nav>
       </aside>
@@ -160,9 +219,12 @@ function AuthenticatedApp({
             <button
               type="button"
               className="topbar__brand"
-              onClick={() => setView('dashboard')}
+              onClick={() => openView('dashboard')}
             >
-              <span className="topbar__logo topbar__logo--compact" aria-hidden="true">
+              <span
+                className="topbar__logo topbar__logo--compact"
+                aria-hidden="true"
+              >
                 O
               </span>
               <span className="brand">Organizador</span>
@@ -208,7 +270,7 @@ function AuthenticatedApp({
               onToggleTask={store.toggleTask}
               onToggleReminder={store.toggleReminder}
               onAddTask={store.addTask}
-              onOpen={setView}
+              onOpen={(next) => openView(next)}
             />
           )}
           {view === 'finanzas' && (
@@ -247,6 +309,8 @@ function AuthenticatedApp({
           {view === 'trabajo' && (
             <WorkPanel
               monthKey={monthKey}
+              section={workSection}
+              onSectionChange={setWorkSection}
               workItems={store.monthWork}
               workNotes={store.workNotes}
               workLinks={store.workLinks}
@@ -274,7 +338,7 @@ function AuthenticatedApp({
             type="button"
             className={`mobile-nav__btn${view === item.id ? ' is-active' : ''}`}
             aria-current={view === item.id ? 'page' : undefined}
-            onClick={() => setView(item.id)}
+            onClick={() => openView(item.id)}
           >
             <span className="mobile-nav__icon" aria-hidden="true">
               {item.icon}

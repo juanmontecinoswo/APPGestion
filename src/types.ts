@@ -4,6 +4,7 @@ export type ExpenseKind = 'unico' | 'fijo' | 'mensual'
 export type RecurringKind = 'fijo' | 'mensual'
 export type RecurrenceEnd = 'manual' | 'months'
 export type WorkStatus = 'pendiente' | 'en_curso' | 'hecho'
+export type WorkSection = 'encargos' | 'notas' | 'links'
 
 export type UserRole = 'admin' | 'user'
 
@@ -168,6 +169,32 @@ export const MENU_ITEMS: {
     label: 'Trabajo',
     shortLabel: 'Trabajo',
     blurb: 'Seguimiento de encargos, proyectos y estados laborales.',
+  },
+]
+
+export const WORK_SECTIONS: {
+  id: WorkSection
+  label: string
+  shortLabel: string
+  blurb: string
+}[] = [
+  {
+    id: 'encargos',
+    label: 'Encargos',
+    shortLabel: 'Encargos',
+    blurb: 'Pendientes y proyectos del mes con estado e importancia.',
+  },
+  {
+    id: 'notas',
+    label: 'Notas',
+    shortLabel: 'Notas',
+    blurb: 'Apuntes rápidos del trabajo, ideas y recordatorios libres.',
+  },
+  {
+    id: 'links',
+    label: 'Links',
+    shortLabel: 'Links',
+    blurb: 'Enlaces con descripción para documentos y referencias.',
   },
 ]
 

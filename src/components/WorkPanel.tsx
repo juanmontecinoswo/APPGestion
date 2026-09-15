@@ -6,8 +6,10 @@ import type {
   WorkItem,
   WorkLink,
   WorkNote,
+  WorkSection,
   WorkStatus,
 } from '../types'
+import { WORK_SECTIONS } from '../types'
 import {
   createWorkItem,
   createWorkLink,
@@ -18,6 +20,8 @@ import { AddIconButton, FormSheet } from './FormSheet'
 
 interface Props {
   monthKey: string
+  section: WorkSection
+  onSectionChange: (section: WorkSection) => void
   workItems: WorkItem[]
   workNotes: WorkNote[]
   workLinks: WorkLink[]
@@ -58,6 +62,8 @@ function normalizeUrl(value: string): string {
 
 export function WorkPanel({
   monthKey,
+  section,
+  onSectionChange,
   workItems,
   workNotes,
   workLinks,
@@ -96,6 +102,7 @@ export function WorkPanel({
   const linkFieldRef = useRef<HTMLInputElement>(null)
 
   const maxDay = daysInMonth(monthKey)
+  const current = WORK_SECTIONS.find((item) => item.id === section)!
   const sorted = [...workItems].sort((a, b) => {
     const order: Record<WorkStatus, number> = {
       en_curso: 0,
@@ -272,88 +279,103 @@ export function WorkPanel({
   }
 
   return (
-    <section className="panel" aria-labelledby="work-title">
-      <header className="panel__head panel__head--row">
-        <div>
-          <h2 id="work-title">Trabajo</h2>
-          <p>
-            Encargos, notas y enlaces útiles. Marca el estado de cada encargo y
-            guarda referencias del día a día.
-          </p>
-        </div>
-        <AddIconButton label="Añadir trabajo" onClick={openCreate} />
-      </header>
-
-      <ul className="list">
-        {sorted.length === 0 && (
-          <li className="list__empty">No hay encargos este mes.</li>
-        )}
-        {sorted.map((item) => (
-          <li
+    <div className="work-view">
+      <nav className="work-tabs" aria-label="Submenús de trabajo">
+        {WORK_SECTIONS.map((item) => (
+          <button
             key={item.id}
-            className={`list__item${item.status === 'hecho' ? ' is-done' : ''}`}
+            type="button"
+            className={`work-tabs__btn${section === item.id ? ' is-active' : ''}`}
+            aria-current={section === item.id ? 'page' : undefined}
+            onClick={() => onSectionChange(item.id)}
           >
-            <div className="list__main">
-              <div className="list__title-row">
-                <strong>{item.title}</strong>
-                <span className={`chip chip--status chip--${item.status}`}>
-                  {STATUS_LABEL[item.status]}
-                </span>
-                <span className={`chip chip--imp chip--${item.importance}`}>
-                  {IMPORTANCE_LABEL[item.importance]}
-                </span>
-                <span className="chip chip--kind">
-                  {RECURRENCE_LABEL[item.recurrence]}
-                </span>
-              </div>
-              <div className="list__meta">
-                <span>{item.project}</span>
-                {item.dueDay != null && <span>Día {item.dueDay}</span>}
-                {item.notes && <span>{item.notes}</span>}
-              </div>
-            </div>
-            <div className="list__ops">
-              <button
-                type="button"
-                className="btn btn--tiny"
-                onClick={() =>
-                  onUpdate(item.id, {
-                    status:
-                      item.status === 'pendiente'
-                        ? 'en_curso'
-                        : item.status === 'en_curso'
-                          ? 'hecho'
-                          : 'pendiente',
-                  })
-                }
-              >
-                Avanzar
-              </button>
-              <button
-                type="button"
-                className="btn btn--tiny"
-                onClick={() => startEdit(item)}
-              >
-                Editar
-              </button>
-              <button
-                type="button"
-                className="btn btn--tiny btn--danger"
-                onClick={() => onRemove(item.id)}
-              >
-                Borrar
-              </button>
-            </div>
-          </li>
+            {item.label}
+          </button>
         ))}
-      </ul>
+      </nav>
 
-      <div className="work-extras">
-        <section className="work-block" aria-labelledby="work-notes-title">
+      {section === 'encargos' && (
+        <section className="panel" aria-labelledby="work-title">
           <header className="panel__head panel__head--row">
             <div>
-              <h3 id="work-notes-title">Notas</h3>
-              <p>Apuntes rápidos del trabajo, ideas y recordatorios libres.</p>
+              <h2 id="work-title">{current.label}</h2>
+              <p>{current.blurb}</p>
+            </div>
+            <AddIconButton label="Añadir encargo" onClick={openCreate} />
+          </header>
+
+          <ul className="list">
+            {sorted.length === 0 && (
+              <li className="list__empty">No hay encargos este mes.</li>
+            )}
+            {sorted.map((item) => (
+              <li
+                key={item.id}
+                className={`list__item${item.status === 'hecho' ? ' is-done' : ''}`}
+              >
+                <div className="list__main">
+                  <div className="list__title-row">
+                    <strong>{item.title}</strong>
+                    <span className={`chip chip--status chip--${item.status}`}>
+                      {STATUS_LABEL[item.status]}
+                    </span>
+                    <span className={`chip chip--imp chip--${item.importance}`}>
+                      {IMPORTANCE_LABEL[item.importance]}
+                    </span>
+                    <span className="chip chip--kind">
+                      {RECURRENCE_LABEL[item.recurrence]}
+                    </span>
+                  </div>
+                  <div className="list__meta">
+                    <span>{item.project}</span>
+                    {item.dueDay != null && <span>Día {item.dueDay}</span>}
+                    {item.notes && <span>{item.notes}</span>}
+                  </div>
+                </div>
+                <div className="list__ops">
+                  <button
+                    type="button"
+                    className="btn btn--tiny"
+                    onClick={() =>
+                      onUpdate(item.id, {
+                        status:
+                          item.status === 'pendiente'
+                            ? 'en_curso'
+                            : item.status === 'en_curso'
+                              ? 'hecho'
+                              : 'pendiente',
+                      })
+                    }
+                  >
+                    Avanzar
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--tiny"
+                    onClick={() => startEdit(item)}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--tiny btn--danger"
+                    onClick={() => onRemove(item.id)}
+                  >
+                    Borrar
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {section === 'notas' && (
+        <section className="panel" aria-labelledby="work-notes-title">
+          <header className="panel__head panel__head--row">
+            <div>
+              <h2 id="work-notes-title">{current.label}</h2>
+              <p>{current.blurb}</p>
             </div>
             <AddIconButton label="Añadir nota" onClick={openCreateNote} />
           </header>
@@ -392,14 +414,14 @@ export function WorkPanel({
             ))}
           </ul>
         </section>
+      )}
 
-        <section className="work-block" aria-labelledby="work-links-title">
+      {section === 'links' && (
+        <section className="panel" aria-labelledby="work-links-title">
           <header className="panel__head panel__head--row">
             <div>
-              <h3 id="work-links-title">Links</h3>
-              <p>
-                Enlaces con descripción para documentos, paneles y referencias.
-              </p>
+              <h2 id="work-links-title">{current.label}</h2>
+              <p>{current.blurb}</p>
             </div>
             <AddIconButton label="Añadir link" onClick={openCreateLink} />
           </header>
@@ -448,11 +470,11 @@ export function WorkPanel({
             ))}
           </ul>
         </section>
-      </div>
+      )}
 
       <FormSheet
         open={open}
-        title={editingId ? 'Editar trabajo' : 'Nuevo trabajo'}
+        title={editingId ? 'Editar encargo' : 'Nuevo encargo'}
         description="Completa el encargo y su estado."
         onClose={closeForm}
       >
@@ -537,7 +559,7 @@ export function WorkPanel({
               Cancelar
             </button>
             <button type="submit" className="btn btn--primary">
-              {editingId ? 'Guardar cambios' : 'Guardar trabajo'}
+              {editingId ? 'Guardar cambios' : 'Guardar encargo'}
             </button>
           </div>
         </form>
@@ -633,6 +655,6 @@ export function WorkPanel({
           </div>
         </form>
       </FormSheet>
-    </section>
+    </div>
   )
 }

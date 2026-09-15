@@ -160,6 +160,11 @@ em {
   align-content: start;
 }
 
+.sidebar__group {
+  display: grid;
+  gap: 0.25rem;
+}
+
 .sidebar__btn {
   display: flex;
   align-items: center;
@@ -188,6 +193,44 @@ em {
   color: var(--ink);
   background: var(--accent-soft);
   border-color: rgba(110, 168, 255, 0.22);
+}
+
+.sidebar__subnav {
+  display: none;
+  gap: 0.2rem;
+  padding: 0.15rem 0 0.2rem 0.55rem;
+  margin-left: 0.55rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar__subnav.is-open {
+  display: grid;
+}
+
+.sidebar__subbtn {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 0.55rem 0.65rem;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.sidebar__subbtn:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.sidebar__subbtn.is-active {
+  color: var(--accent);
+  background: rgba(110, 168, 255, 0.1);
+  border-color: rgba(110, 168, 255, 0.16);
 }
 
 .sidebar__icon {
@@ -222,9 +265,16 @@ em {
   width: 100%;
 }
 
-.shell--app.is-sidebar-collapsed .sidebar__btn {
+.shell--app.is-sidebar-collapsed .sidebar__btn,
+.shell--app.is-sidebar-collapsed .sidebar__subbtn {
   justify-content: center;
   padding: 0.75rem 0.4rem;
+}
+
+.shell--app.is-sidebar-collapsed .sidebar__subnav {
+  margin-left: 0;
+  padding-left: 0;
+  border-left: 0;
 }
 
 .topbar {
@@ -830,6 +880,38 @@ em {
   display: grid;
   gap: 1.25rem;
   margin-top: 1.5rem;
+}
+
+.work-view {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.work-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.work-tabs__btn {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--ink-soft);
+  border-radius: 999px;
+  padding: 0.55rem 0.95rem;
+  font-weight: 650;
+  font-size: 0.9rem;
+}
+
+.work-tabs__btn:hover {
+  color: var(--ink);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.work-tabs__btn.is-active {
+  color: var(--ink);
+  background: var(--accent-soft);
+  border-color: rgba(110, 168, 255, 0.28);
 }
 
 .work-block {
