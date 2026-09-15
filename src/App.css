@@ -312,6 +312,10 @@ em {
   display: none;
 }
 
+.btn.topbar__menu-toggle {
+  display: none;
+}
+
 .topbar__brand {
   display: none;
   align-items: center;
@@ -1555,6 +1559,10 @@ em {
 
   .topbar__brand {
     display: flex;
+  }
+
+  .btn.topbar__menu-toggle {
+    display: none;
   }
 
   .topbar__brand .brand {
