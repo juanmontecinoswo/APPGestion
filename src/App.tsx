@@ -331,29 +331,24 @@ function AuthenticatedApp({
           ))}
         </nav>
 
-        <div className="sidebar__backup">
-          <p className="sidebar__backup-title">Respaldo</p>
+        <div className="sidebar__backup" aria-label="Respaldo">
           <button
             type="button"
-            className="sidebar__backup-btn"
+            className="sidebar__backup-icon"
             title="Descargar backup"
+            aria-label="Descargar backup"
             onClick={handleDownloadBackup}
           >
-            <span className="sidebar__icon" aria-hidden="true">
-              ↓
-            </span>
-            <span className="sidebar__label">Descargar backup</span>
+            <span aria-hidden="true">↓</span>
           </button>
           <button
             type="button"
-            className="sidebar__backup-btn"
+            className="sidebar__backup-icon"
             title="Cargar backup"
+            aria-label="Cargar backup"
             onClick={() => backupInputRef.current?.click()}
           >
-            <span className="sidebar__icon" aria-hidden="true">
-              ↑
-            </span>
-            <span className="sidebar__label">Cargar backup</span>
+            <span aria-hidden="true">↑</span>
           </button>
           <input
             ref={backupInputRef}
@@ -365,12 +360,12 @@ function AuthenticatedApp({
               void handleBackupFile(e.target.files?.[0] ?? null)
             }}
           />
-          {backupMessage && (
-            <p className="sidebar__backup-msg">{backupMessage}</p>
-          )}
-          {backupError && (
-            <p className="sidebar__backup-msg sidebar__backup-msg--error">
-              {backupError}
+          {(backupMessage || backupError) && (
+            <p
+              className={`sidebar__backup-msg${backupError ? ' sidebar__backup-msg--error' : ''}`}
+              title={backupError ?? backupMessage ?? ''}
+            >
+              {backupError ? '!' : '✓'}
             </p>
           )}
         </div>
