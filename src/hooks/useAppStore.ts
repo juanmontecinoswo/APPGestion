@@ -233,7 +233,14 @@ export function useAppStore(userId: string, activeMonth: string) {
     }))
   }
 
+  function replaceState(next: AppState) {
+    const normalized = next
+    setState(normalized)
+    saveState(userId, normalized)
+  }
+
   return {
+    data: state,
     monthTasks,
     monthExpenses,
     monthReminders,
@@ -264,5 +271,6 @@ export function useAppStore(userId: string, activeMonth: string) {
     addWorkLink,
     updateWorkLink,
     removeWorkLink,
+    replaceState,
   }
 }

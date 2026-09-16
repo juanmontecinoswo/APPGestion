@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { UserAccount, ViewId, WorkSection } from './types'
 import { MENU_ITEMS, WORK_SECTIONS } from './types'
-import { monthKeyFromDate } from './lib/storage'
+import { monthKeyFromDate, downloadUserBackup, readBackupFile, importUserBackup } from './lib/storage'
 import { useAuth } from './hooks/useAuth'
 import { useAppStore } from './hooks/useAppStore'
 import { LoginScreen } from './components/LoginScreen'
@@ -63,7 +63,10 @@ function AuthenticatedApp({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [ready, setReady] = useState(false)
   const [sidebarExpanded, setSidebarExpanded] = useState(readSidebarExpanded)
+  const [backupMessage, setBackupMessage] = useState<string | null>(null)
+  const [backupError, setBackupError] = useState<string | null>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
+  const backupInputRef = useRef<HTMLInputElement>(null)
   const store = useAppStore(user.id, monthKey)
 
   const pendingTasks = store.monthTasks.filter((task) => !task.done).length
@@ -177,6 +180,50 @@ function AuthenticatedApp({
     setMobileMenuOpen(false)
   }
 
+  function handleDownloadBackup() {
+    setBackupError(null)
+    downloadUserBackup(
+      {
+        id: user.id,
+        username: user.username,
+        displayName: user.displayName,
+      },
+      store.data,
+    )
+    setBackupMessage('Backup descargado.')
+    window.setTimeout(() => setBackupMessage(null), 2500)
+  }
+
+  async function handleBackupFile(file: File | null) {
+    if (!file) return
+    setBackupError(null)
+    setBackupMessage(null)
+    const confirmed = window.confirm(
+      'Esto reemplazará todos los datos del usuario actual con el backup. ¿Continuar?',
+    )
+    if (!confirmed) {
+      if (backupInputRef.current) backupInputRef.current.value = ''
+      return
+    }
+    try {
+      const parsed = await readBackupFile(file)
+      const next = importUserBackup(user.id, parsed)
+      store.replaceState(next)
+      setBackupMessage('Backup cargado correctamente.')
+      setMobileMenuOpen(false)
+      setView('dashboard')
+      window.setTimeout(() => setBackupMessage(null), 3000)
+    } catch (error) {
+      setBackupError(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo cargar el backup.',
+      )
+    } finally {
+      if (backupInputRef.current) backupInputRef.current.value = ''
+    }
+  }
+
   return (
     <div
       className={`shell shell--app${ready ? ' is-ready' : ''}${sidebarExpanded ? '' : ' is-sidebar-collapsed'}${mobileMenuOpen ? ' is-mobile-menu-open' : ''}`}
@@ -283,6 +330,50 @@ function AuthenticatedApp({
             </div>
           ))}
         </nav>
+
+        <div className="sidebar__backup">
+          <p className="sidebar__backup-title">Respaldo</p>
+          <button
+            type="button"
+            className="sidebar__backup-btn"
+            title="Descargar backup"
+            onClick={handleDownloadBackup}
+          >
+            <span className="sidebar__icon" aria-hidden="true">
+              ↓
+            </span>
+            <span className="sidebar__label">Descargar backup</span>
+          </button>
+          <button
+            type="button"
+            className="sidebar__backup-btn"
+            title="Cargar backup"
+            onClick={() => backupInputRef.current?.click()}
+          >
+            <span className="sidebar__icon" aria-hidden="true">
+              ↑
+            </span>
+            <span className="sidebar__label">Cargar backup</span>
+          </button>
+          <input
+            ref={backupInputRef}
+            className="sidebar__backup-input"
+            type="file"
+            accept="application/json,.json"
+            aria-label="Seleccionar archivo de backup"
+            onChange={(e) => {
+              void handleBackupFile(e.target.files?.[0] ?? null)
+            }}
+          />
+          {backupMessage && (
+            <p className="sidebar__backup-msg">{backupMessage}</p>
+          )}
+          {backupError && (
+            <p className="sidebar__backup-msg sidebar__backup-msg--error">
+              {backupError}
+            </p>
+          )}
+        </div>
       </aside>
 
       <div className="shell__main">

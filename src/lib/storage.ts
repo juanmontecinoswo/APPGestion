@@ -372,6 +372,91 @@ export function saveState(userId: string, state: AppState): void {
   localStorage.setItem(dataKey(userId), JSON.stringify(state))
 }
 
+export interface UserBackupMeta {
+  id: string
+  username: string
+  displayName: string
+}
+
+export interface UserBackupFile {
+  app: 'organizador'
+  version: 1
+  exportedAt: string
+  user: UserBackupMeta
+  data: AppState
+}
+
+export function createUserBackup(
+  user: UserBackupMeta,
+  state: AppState,
+): UserBackupFile {
+  return {
+    app: 'organizador',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    user: {
+      id: user.id,
+      username: user.username,
+      displayName: user.displayName,
+    },
+    data: normalizeState(state),
+  }
+}
+
+export function downloadUserBackup(
+  user: UserBackupMeta,
+  state: AppState,
+): void {
+  const backup = createUserBackup(user, state)
+  const stamp = backup.exportedAt.slice(0, 10)
+  const safeName = user.username.replace(/[^a-zA-Z0-9_-]+/g, '_') || 'usuario'
+  const blob = new Blob([JSON.stringify(backup, null, 2)], {
+    type: 'application/json',
+  })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `organizador-backup-${safeName}-${stamp}.json`
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
+export function parseUserBackup(raw: unknown): AppState {
+  if (!raw || typeof raw !== 'object') {
+    throw new Error('El archivo de backup no es válido.')
+  }
+  const file = raw as Partial<UserBackupFile> & { data?: Partial<AppState> }
+  const source =
+    file.app === 'organizador' && file.data && typeof file.data === 'object'
+      ? file.data
+      : (raw as Partial<AppState>)
+
+  const parsed = normalizeState(source)
+  if (!Array.isArray(parsed.tasks) || !Array.isArray(parsed.expenses)) {
+    throw new Error('El backup no contiene datos reconocibles.')
+  }
+  return parsed
+}
+
+export async function readBackupFile(file: File): Promise<AppState> {
+  const text = await file.text()
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    throw new Error('No se pudo leer el archivo JSON.')
+  }
+  return parseUserBackup(parsed)
+}
+
+export function importUserBackup(userId: string, state: AppState): AppState {
+  const next = normalizeState(state)
+  saveState(userId, next)
+  return next
+}
+
 export function createTask(
   partial: Omit<Task, 'id' | 'createdAt' | 'done'>,
 ): Task {
