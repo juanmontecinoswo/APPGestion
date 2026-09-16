@@ -410,7 +410,12 @@ function AuthenticatedApp({
             >
               <span className="topbar-stat__value">{pendingTasks}</span>
               <span className="topbar-stat__label">
-                {pendingTasks === 1 ? 'tarea pendiente' : 'tareas pendientes'}
+                <span className="topbar-stat__full">
+                  {pendingTasks === 1 ? 'tarea pendiente' : 'tareas pendientes'}
+                </span>
+                <span className="topbar-stat__short" aria-hidden="true">
+                  tareas
+                </span>
               </span>
             </button>
             <button
@@ -420,7 +425,14 @@ function AuthenticatedApp({
             >
               <span className="topbar-stat__value">{pendingPayments}</span>
               <span className="topbar-stat__label">
-                {pendingPayments === 1 ? 'pago pendiente' : 'pagos pendientes'}
+                <span className="topbar-stat__full">
+                  {pendingPayments === 1
+                    ? 'pago pendiente'
+                    : 'pagos pendientes'}
+                </span>
+                <span className="topbar-stat__short" aria-hidden="true">
+                  pagos
+                </span>
               </span>
             </button>
           </div>
