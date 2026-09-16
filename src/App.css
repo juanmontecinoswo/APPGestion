@@ -1484,7 +1484,7 @@ em {
   inset: 0;
   z-index: 40;
   display: grid;
-  place-items: end center;
+  place-items: center;
   padding: 1rem;
   background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(4px);
@@ -1496,11 +1496,11 @@ em {
   max-height: min(90vh, 720px);
   overflow: auto;
   padding: 1.2rem 1.15rem 1.25rem;
-  border-radius: 22px 22px 18px 18px;
+  border-radius: 18px;
   background: var(--bg-elevated);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
-  animation: sheet-up 0.28s ease;
+  animation: sheet-in 0.28s ease;
 }
 
 .sheet__head {
@@ -1581,10 +1581,10 @@ em {
   }
 }
 
-@keyframes sheet-up {
+@keyframes sheet-in {
   from {
     opacity: 0;
-    transform: translateY(18px);
+    transform: translateY(10px) scale(0.98);
   }
   to {
     opacity: 1;
@@ -1932,16 +1932,17 @@ em {
   }
 
   .sheet {
-    place-items: end stretch;
-    padding: 0;
+    place-items: center;
+    padding: 1rem;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   }
 
   .sheet__panel {
-    width: 100%;
-    max-height: min(92vh, 100%);
+    width: min(560px, 100%);
+    max-height: min(90vh, 100%);
     overflow: auto;
-    border-radius: 18px 18px 0 0;
-    padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+    border-radius: 18px;
+    padding: 1rem;
   }
 
   .login-screen {
