@@ -5,6 +5,7 @@ import type {
   RecurringExpense,
   Reminder,
   Task,
+  WorkDayEntry,
   WorkItem,
   WorkLink,
   WorkNote,
@@ -258,6 +259,7 @@ function seedState(monthKey: string): AppState {
 
   const workNotes: WorkNote[] = []
   const workLinks: WorkLink[] = []
+  const workDayEntries: WorkDayEntry[] = []
 
   return {
     tasks,
@@ -267,6 +269,7 @@ function seedState(monthKey: string): AppState {
     workItems,
     workNotes,
     workLinks,
+    workDayEntries,
   }
 }
 
@@ -335,6 +338,18 @@ function normalizeState(raw: Partial<AppState>): AppState {
       description: link.description ?? '',
       createdAt: link.createdAt ?? new Date().toISOString(),
     })),
+    workDayEntries: (raw.workDayEntries ?? [])
+      .map((entry) => {
+        const value = Number(entry.value)
+        if (!entry.id || !entry.dateKey || !Number.isFinite(value)) return null
+        return {
+          id: entry.id,
+          dateKey: entry.dateKey,
+          value,
+          createdAt: entry.createdAt ?? new Date().toISOString(),
+        } satisfies WorkDayEntry
+      })
+      .filter((entry): entry is WorkDayEntry => entry != null),
   }
 }
 
@@ -529,6 +544,26 @@ export function createWorkLink(
     id: uid(),
     createdAt: new Date().toISOString(),
   }
+}
+
+export function createWorkDayEntry(
+  partial: Omit<WorkDayEntry, 'id' | 'createdAt'>,
+): WorkDayEntry {
+  return {
+    ...partial,
+    id: uid(),
+    createdAt: new Date().toISOString(),
+  }
+}
+
+export function dateKeyFromParts(monthKey: string, day: number): string {
+  return `${monthKey}-${String(day).padStart(2, '0')}`
+}
+
+export function formatWorkNumber(value: number): string {
+  return new Intl.NumberFormat('es-CL', {
+    maximumFractionDigits: 2,
+  }).format(value)
 }
 
 function cloneRecurringByMonth<T extends { monthKey: string; recurrence?: RecurrenceKind }>(

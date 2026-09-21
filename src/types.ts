@@ -4,7 +4,7 @@ export type ExpenseKind = 'unico' | 'fijo' | 'mensual'
 export type RecurringKind = 'fijo' | 'mensual'
 export type RecurrenceEnd = 'manual' | 'months'
 export type WorkStatus = 'pendiente' | 'en_curso' | 'hecho'
-export type WorkSection = 'encargos' | 'notas' | 'links'
+export type WorkSection = 'encargos' | 'notas' | 'links' | 'calendario'
 
 export type UserRole = 'admin' | 'user'
 
@@ -119,6 +119,15 @@ export interface WorkLink {
   createdAt: string
 }
 
+/** Número registrado en un día del calendario de trabajo */
+export interface WorkDayEntry {
+  id: string
+  /** YYYY-MM-DD */
+  dateKey: string
+  value: number
+  createdAt: string
+}
+
 export interface AppState {
   tasks: Task[]
   expenses: Expense[]
@@ -127,6 +136,7 @@ export interface AppState {
   workItems: WorkItem[]
   workNotes: WorkNote[]
   workLinks: WorkLink[]
+  workDayEntries: WorkDayEntry[]
 }
 
 export const EXPENSE_CATEGORIES = [
@@ -195,6 +205,12 @@ export const WORK_SECTIONS: {
     label: 'Links',
     shortLabel: 'Links',
     blurb: 'Enlaces con descripción para documentos y referencias.',
+  },
+  {
+    id: 'calendario',
+    label: 'Calendario',
+    shortLabel: 'Calendario',
+    blurb: 'Registra números por día y ve el total acumulado en el mes.',
   },
 ]
 

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import type {
   Importance,
   Recurrence,
+  WorkDayEntry,
   WorkItem,
   WorkLink,
   WorkNote,
@@ -17,6 +18,7 @@ import {
   daysInMonth,
 } from '../lib/storage'
 import { AddIconButton, FormSheet } from './FormSheet'
+import { WorkCalendarSection } from './WorkCalendarSection'
 
 interface Props {
   monthKey: string
@@ -25,6 +27,7 @@ interface Props {
   workItems: WorkItem[]
   workNotes: WorkNote[]
   workLinks: WorkLink[]
+  workDayEntries: WorkDayEntry[]
   onAdd: (item: WorkItem) => void
   onUpdate: (id: string, patch: Partial<WorkItem>) => void
   onRemove: (id: string) => void
@@ -34,6 +37,8 @@ interface Props {
   onAddLink: (link: WorkLink) => void
   onUpdateLink: (id: string, patch: Partial<WorkLink>) => void
   onRemoveLink: (id: string) => void
+  onAddDayEntry: (entry: WorkDayEntry) => void
+  onRemoveDayEntry: (id: string) => void
 }
 
 const IMPORTANCE_LABEL: Record<Importance, string> = {
@@ -67,6 +72,7 @@ export function WorkPanel({
   workItems,
   workNotes,
   workLinks,
+  workDayEntries,
   onAdd,
   onUpdate,
   onRemove,
@@ -76,6 +82,8 @@ export function WorkPanel({
   onAddLink,
   onUpdateLink,
   onRemoveLink,
+  onAddDayEntry,
+  onRemoveDayEntry,
 }: Props) {
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState('')
@@ -470,6 +478,16 @@ export function WorkPanel({
             ))}
           </ul>
         </section>
+      )}
+
+      {section === 'calendario' && (
+        <WorkCalendarSection
+          monthKey={monthKey}
+          blurb={current.blurb}
+          entries={workDayEntries}
+          onAdd={onAddDayEntry}
+          onRemove={onRemoveDayEntry}
+        />
       )}
 
       <FormSheet

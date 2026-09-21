@@ -5,6 +5,7 @@ import type {
   RecurringExpense,
   Reminder,
   Task,
+  WorkDayEntry,
   WorkItem,
   WorkLink,
   WorkNote,
@@ -233,6 +234,20 @@ export function useAppStore(userId: string, activeMonth: string) {
     }))
   }
 
+  function addWorkDayEntry(entry: WorkDayEntry) {
+    setState((s) => ({
+      ...s,
+      workDayEntries: [entry, ...s.workDayEntries],
+    }))
+  }
+
+  function removeWorkDayEntry(id: string) {
+    setState((s) => ({
+      ...s,
+      workDayEntries: s.workDayEntries.filter((entry) => entry.id !== id),
+    }))
+  }
+
   function replaceState(next: AppState) {
     const normalized = next
     setState(normalized)
@@ -247,6 +262,7 @@ export function useAppStore(userId: string, activeMonth: string) {
     monthWork,
     workNotes: state.workNotes,
     workLinks: state.workLinks,
+    workDayEntries: state.workDayEntries,
     recurringExpenses: state.recurringExpenses,
     addTask,
     updateTask,
@@ -271,6 +287,8 @@ export function useAppStore(userId: string, activeMonth: string) {
     addWorkLink,
     updateWorkLink,
     removeWorkLink,
+    addWorkDayEntry,
+    removeWorkDayEntry,
     replaceState,
   }
 }

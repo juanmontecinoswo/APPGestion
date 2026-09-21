@@ -1130,6 +1130,99 @@ em {
   opacity: 0.85;
 }
 
+.work-cal__layout {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1.15fr) minmax(260px, 0.85fr);
+  align-items: start;
+}
+
+.work-cal__board {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.work-cal__board-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.work-cal__board-head h3 {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+}
+
+.work-cal__month-total {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.work-cal__grid .work-cal__day {
+  display: grid;
+  place-items: center;
+  gap: 0.1rem;
+  min-height: 3.4rem;
+  padding: 0.35rem 0.2rem;
+  line-height: 1.1;
+}
+
+.work-cal__day-num {
+  font-weight: 700;
+}
+
+.work-cal__day-sum {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--accent);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.work-cal__day.has-total .work-cal__day-num {
+  font-size: 0.92rem;
+}
+
+.work-cal__day-panel {
+  margin-top: 0;
+}
+
+.work-cal__add {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.work-cal__add .field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.work-cal__add .field span {
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.work-cal__entries {
+  margin-top: 0.85rem;
+}
+
+@media (max-width: 900px) {
+  .work-cal__layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 .collapse-trigger {
   display: flex;
   align-items: flex-start;
