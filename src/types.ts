@@ -124,7 +124,8 @@ export interface WorkDayEntry {
   id: string
   /** YYYY-MM-DD */
   dateKey: string
-  value: number
+  /** Texto tal como se ingresó, sin transformar a valor numérico */
+  text: string
   createdAt: string
 }
 

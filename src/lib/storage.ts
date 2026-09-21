@@ -340,13 +340,25 @@ function normalizeState(raw: Partial<AppState>): AppState {
     })),
     workDayEntries: (raw.workDayEntries ?? [])
       .map((entry) => {
-        const value = Number(entry.value)
-        if (!entry.id || !entry.dateKey || !Number.isFinite(value)) return null
+        const legacy = entry as {
+          id?: string
+          dateKey?: string
+          text?: string
+          value?: unknown
+          createdAt?: string
+        }
+        const text =
+          typeof legacy.text === 'string'
+            ? legacy.text.trim()
+            : legacy.value != null
+              ? String(legacy.value).trim()
+              : ''
+        if (!legacy.id || !legacy.dateKey || !text) return null
         return {
-          id: entry.id,
-          dateKey: entry.dateKey,
-          value,
-          createdAt: entry.createdAt ?? new Date().toISOString(),
+          id: legacy.id,
+          dateKey: legacy.dateKey,
+          text,
+          createdAt: legacy.createdAt ?? new Date().toISOString(),
         } satisfies WorkDayEntry
       })
       .filter((entry): entry is WorkDayEntry => entry != null),
@@ -558,12 +570,6 @@ export function createWorkDayEntry(
 
 export function dateKeyFromParts(monthKey: string, day: number): string {
   return `${monthKey}-${String(day).padStart(2, '0')}`
-}
-
-export function formatWorkNumber(value: number): string {
-  return new Intl.NumberFormat('es-CL', {
-    maximumFractionDigits: 2,
-  }).format(value)
 }
 
 function cloneRecurringByMonth<T extends { monthKey: string; recurrence?: RecurrenceKind }>(

@@ -6,7 +6,6 @@ import {
   dateKeyFromParts,
   daysInMonth,
   formatMonthLabel,
-  formatWorkNumber,
   monthKeyFromDate,
   parseMonthKey,
 } from '../lib/storage'
@@ -37,14 +36,6 @@ function defaultSelectedDay(monthKey: string): number {
   const todayKey = monthKeyFromDate()
   if (monthKey === todayKey) return new Date().getDate()
   return 1
-}
-
-function parseNumberInput(raw: string): number | null {
-  const trimmed = raw.trim().replace(/\s/g, '').replace(',', '.')
-  if (!trimmed) return null
-  const value = Number(trimmed)
-  if (!Number.isFinite(value)) return null
-  return value
 }
 
 export function WorkCalendarSection({
@@ -98,12 +89,12 @@ export function WorkCalendarSection({
 
   function handleAdd(e: FormEvent) {
     e.preventDefault()
-    const value = parseNumberInput(amount)
-    if (value == null) return
+    const text = amount.trim()
+    if (!text) return
     onAdd(
       createWorkDayEntry({
         dateKey: selectedKey,
-        value,
+        text,
       }),
     )
     setAmount('')
@@ -183,10 +174,10 @@ export function WorkCalendarSection({
               <span>Agregar número</span>
               <input
                 type="text"
-                inputMode="decimal"
+                inputMode="text"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder="Ej. 10"
+                placeholder="Ej. 44.139"
                 required
                 aria-label={`Número para el día ${selectedDay}`}
               />
@@ -205,7 +196,7 @@ export function WorkCalendarSection({
             {dayEntries.map((entry) => (
               <li key={entry.id} className="list__item">
                 <div className="list__main">
-                  <strong>{formatWorkNumber(entry.value)}</strong>
+                  <strong className="work-cal__entry-text">{entry.text}</strong>
                 </div>
                 <div className="list__ops">
                   <button
