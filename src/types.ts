@@ -210,7 +210,7 @@ export const WORK_SECTIONS: {
     id: 'calendario',
     label: 'Calendario',
     shortLabel: 'Calendario',
-    blurb: 'Registra números por día y ve el total acumulado en el mes.',
+    blurb: 'Registra números por día y ve cuántos has agregado en el mes.',
   },
 ]
 

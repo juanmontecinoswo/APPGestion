@@ -79,12 +79,12 @@ export function WorkCalendarSection({
     [entries, monthPrefix],
   )
 
-  const totalsByDay = useMemo(() => {
+  const countsByDay = useMemo(() => {
     const map = new Map<number, number>()
     for (const entry of monthEntries) {
       const day = Number(entry.dateKey.slice(-2))
       if (!Number.isFinite(day)) continue
-      map.set(day, (map.get(day) ?? 0) + entry.value)
+      map.set(day, (map.get(day) ?? 0) + 1)
     }
     return map
   }, [monthEntries])
@@ -93,8 +93,8 @@ export function WorkCalendarSection({
   const dayEntries = monthEntries
     .filter((entry) => entry.dateKey === selectedKey)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-  const dayTotal = totalsByDay.get(selectedDay) ?? 0
-  const monthTotal = monthEntries.reduce((sum, entry) => sum + entry.value, 0)
+  const dayCount = dayEntries.length
+  const monthCount = monthEntries.length
 
   function handleAdd(e: FormEvent) {
     e.preventDefault()
@@ -126,7 +126,7 @@ export function WorkCalendarSection({
               <h3>{monthLabel}</h3>
             </div>
             <span className="work-cal__month-total">
-              Total mes: {formatWorkNumber(monthTotal)}
+              {monthCount} {monthCount === 1 ? 'número' : 'números'}
             </span>
           </header>
 
@@ -142,26 +142,24 @@ export function WorkCalendarSection({
               }
               const isToday = monthKey === todayKey && day === todayDay
               const isSelected = day === selectedDay
-              const total = totalsByDay.get(day)
-              const hasTotal = total != null && total !== 0
+              const count = countsByDay.get(day) ?? 0
+              const hasCount = count > 0
               return (
                 <button
                   key={day}
                   type="button"
-                  className={`cal-grid__day work-cal__day${isToday ? ' is-today' : ''}${isSelected ? ' is-selected' : ''}${hasTotal ? ' has-total' : ''}`}
+                  className={`cal-grid__day work-cal__day${isToday ? ' is-today' : ''}${isSelected ? ' is-selected' : ''}${hasCount ? ' has-total' : ''}`}
                   aria-pressed={isSelected}
                   aria-label={
-                    hasTotal
-                      ? `Día ${day}, total ${formatWorkNumber(total)}`
+                    hasCount
+                      ? `Día ${day}, ${count} ${count === 1 ? 'número' : 'números'}`
                       : `Día ${day}`
                   }
                   onClick={() => setSelectedDay(day)}
                 >
                   <span className="work-cal__day-num">{day}</span>
-                  {hasTotal && (
-                    <span className="work-cal__day-sum">
-                      {formatWorkNumber(total)}
-                    </span>
+                  {hasCount && (
+                    <span className="work-cal__day-sum">{count}</span>
                   )}
                 </button>
               )
@@ -176,7 +174,7 @@ export function WorkCalendarSection({
               <h3>Día {selectedDay}</h3>
             </div>
             <span className="cal-day-panel__count">
-              Total: {formatWorkNumber(dayTotal)}
+              Total: {dayCount}
             </span>
           </header>
 
