@@ -333,40 +333,45 @@ function AuthenticatedApp({
         </nav>
 
         <div className="sidebar__backup" aria-label="Respaldo">
-          <button
-            type="button"
-            className="sidebar__backup-icon"
-            title="Descargar backup"
-            aria-label="Descargar backup"
-            onClick={handleDownloadBackup}
-          >
-            <span aria-hidden="true">↓</span>
-          </button>
-          <button
-            type="button"
-            className="sidebar__backup-icon"
-            title="Cargar backup"
-            aria-label="Cargar backup"
-            onClick={() => backupInputRef.current?.click()}
-          >
-            <span aria-hidden="true">↑</span>
-          </button>
-          <input
-            ref={backupInputRef}
-            className="sidebar__backup-input"
-            type="file"
-            accept="application/json,.json"
-            aria-label="Seleccionar archivo de backup"
-            onChange={(e) => {
-              void handleBackupFile(e.target.files?.[0] ?? null)
-            }}
-          />
+          <p className="sidebar__backup-label">Respaldo</p>
+          <div className="sidebar__backup-row">
+            <button
+              type="button"
+              className="sidebar__backup-btn"
+              title="Guardar backup de tus datos"
+              aria-label="Guardar backup"
+              onClick={handleDownloadBackup}
+            >
+              <span aria-hidden="true">↓</span>
+              <span className="sidebar__backup-btn-text">Guardar</span>
+            </button>
+            <button
+              type="button"
+              className="sidebar__backup-btn"
+              title="Cargar backup desde un archivo"
+              aria-label="Cargar backup"
+              onClick={() => backupInputRef.current?.click()}
+            >
+              <span aria-hidden="true">↑</span>
+              <span className="sidebar__backup-btn-text">Cargar</span>
+            </button>
+            <input
+              ref={backupInputRef}
+              className="sidebar__backup-input"
+              type="file"
+              accept="application/json,.json"
+              aria-label="Seleccionar archivo de backup"
+              onChange={(e) => {
+                void handleBackupFile(e.target.files?.[0] ?? null)
+              }}
+            />
+          </div>
           {(backupMessage || backupError) && (
             <p
               className={`sidebar__backup-msg${backupError ? ' sidebar__backup-msg--error' : ''}`}
               title={backupError ?? backupMessage ?? ''}
             >
-              {backupError ? '!' : '✓'}
+              {backupError ?? backupMessage}
             </p>
           )}
         </div>
@@ -556,7 +561,14 @@ function AuthenticatedApp({
             />
           )}
           {view === 'cuenta' && (
-            <AccountPanel user={user} onUserChanged={onUserChanged} />
+            <AccountPanel
+              user={user}
+              onUserChanged={onUserChanged}
+              onDownloadBackup={handleDownloadBackup}
+              onUploadBackup={handleBackupFile}
+              backupMessage={backupMessage}
+              backupError={backupError}
+            />
           )}
         </main>
       </div>

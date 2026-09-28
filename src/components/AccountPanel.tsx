@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { UserAccount } from '../types'
 import {
   adminDeleteUser,
@@ -13,15 +13,27 @@ import { AddIconButton, FormSheet } from './FormSheet'
 interface Props {
   user: UserAccount
   onUserChanged: () => void
+  onDownloadBackup: () => void
+  onUploadBackup: (file: File) => Promise<void>
+  backupMessage?: string | null
+  backupError?: string | null
 }
 
-export function AccountPanel({ user, onUserChanged }: Props) {
+export function AccountPanel({
+  user,
+  onUserChanged,
+  onDownloadBackup,
+  onUploadBackup,
+  backupMessage = null,
+  backupError = null,
+}: Props) {
   const isAdmin = user.role === 'admin'
   const [displayName, setDisplayName] = useState(user.displayName)
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const backupInputRef = useRef<HTMLInputElement>(null)
 
   const [users, setUsers] = useState(() => listManagedUsers())
   const [createOpen, setCreateOpen] = useState(false)
@@ -197,6 +209,54 @@ export function AccountPanel({ user, onUserChanged }: Props) {
             </button>
           </div>
         </form>
+      </section>
+
+      <section className="panel" aria-labelledby="backup-title">
+        <header className="panel__head">
+          <h2 id="backup-title">Respaldo de datos</h2>
+          <p>
+            Guarda un archivo JSON con toda la información de tu usuario
+            (gastos, tareas, recordatorios, trabajo y calendario) o restáurala
+            desde un backup anterior.
+          </p>
+        </header>
+
+        <div className="backup-actions">
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={onDownloadBackup}
+          >
+            Guardar backup
+          </button>
+          <button
+            type="button"
+            className="btn btn--ghost"
+            onClick={() => backupInputRef.current?.click()}
+          >
+            Cargar backup
+          </button>
+          <input
+            ref={backupInputRef}
+            className="sidebar__backup-input"
+            type="file"
+            accept="application/json,.json"
+            aria-label="Seleccionar archivo de backup"
+            onChange={(e) => {
+              const file = e.target.files?.[0] ?? null
+              if (!file) return
+              void onUploadBackup(file).finally(() => {
+                if (backupInputRef.current) backupInputRef.current.value = ''
+              })
+            }}
+          />
+        </div>
+        {backupError && <p className="form-error">{backupError}</p>}
+        {backupMessage && <p className="form-success">{backupMessage}</p>}
+        <p className="backup-hint">
+          Al cargar un archivo se reemplazan solo los datos de tu sesión actual.
+          Las cuentas de otros usuarios no se modifican.
+        </p>
       </section>
 
       {isAdmin && (
