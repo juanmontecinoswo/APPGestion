@@ -747,6 +747,12 @@ em {
   font-size: 1.1rem;
 }
 
+.cal-day-panel__tools {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
 .cal-day-panel__count {
   color: var(--muted);
   font-size: 0.82rem;

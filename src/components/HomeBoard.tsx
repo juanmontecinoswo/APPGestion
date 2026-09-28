@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   createTask,
   daysInMonth,
@@ -18,6 +18,7 @@ import type {
   ViewId,
   WorkItem,
 } from '../types'
+import { AddIconButton, FormSheet } from './FormSheet'
 
 interface Props {
   monthKey: string
@@ -67,8 +68,10 @@ export function HomeBoard({
   const [selectedDay, setSelectedDay] = useState(() =>
     defaultSelectedDay(monthKey),
   )
+  const [open, setOpen] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [importance, setImportance] = useState<Importance>('media')
+  const titleRef = useRef<HTMLInputElement>(null)
 
   const monthLabel = formatMonthLabel(monthKey)
   const cells = buildCalendar(monthKey)
@@ -92,12 +95,24 @@ export function HomeBoard({
 
   useEffect(() => {
     setSelectedDay(defaultSelectedDay(monthKey))
-    setNewTitle('')
+    closeForm()
   }, [monthKey])
 
   useEffect(() => {
     if (selectedDay > maxDay) setSelectedDay(maxDay)
   }, [selectedDay, maxDay])
+
+  useEffect(() => {
+    if (!open) return
+    const id = window.requestAnimationFrame(() => titleRef.current?.focus())
+    return () => window.cancelAnimationFrame(id)
+  }, [open])
+
+  function closeForm() {
+    setOpen(false)
+    setNewTitle('')
+    setImportance('media')
+  }
 
   function handleAddTask(e: FormEvent) {
     e.preventDefault()
@@ -112,8 +127,7 @@ export function HomeBoard({
         dueDay: selectedDay,
       }),
     )
-    setNewTitle('')
-    setImportance('media')
+    closeForm()
   }
 
   return (
@@ -185,10 +199,16 @@ export function HomeBoard({
               <p className="board-card__eyebrow">Tareas del día</p>
               <h3>Día {selectedDay}</h3>
             </div>
-            <span className="cal-day-panel__count">
-              {dayTasks.length}{' '}
-              {dayTasks.length === 1 ? 'tarea' : 'tareas'}
-            </span>
+            <div className="cal-day-panel__tools">
+              <span className="cal-day-panel__count">
+                {dayTasks.length}{' '}
+                {dayTasks.length === 1 ? 'tarea' : 'tareas'}
+              </span>
+              <AddIconButton
+                label={`Agregar tarea al día ${selectedDay}`}
+                onClick={() => setOpen(true)}
+              />
+            </div>
           </header>
 
           <ul className="board-list">
@@ -218,31 +238,50 @@ export function HomeBoard({
               </li>
             ))}
           </ul>
+        </div>
 
-          <form className="cal-add" onSubmit={handleAddTask}>
-            <p className="board-card__eyebrow">Agregar tarea al día {selectedDay}</p>
-            <input
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              placeholder="Ej. Llamar al banco"
-              required
-            />
-            <div className="cal-add__row">
+        <FormSheet
+          open={open}
+          title="Nueva tarea"
+          description={`Agrega una tarea para el día ${selectedDay}.`}
+          onClose={closeForm}
+        >
+          <form className="form form--sheet" onSubmit={handleAddTask}>
+            <label>
+              Tarea
+              <input
+                ref={titleRef}
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="Ej. Llamar al banco"
+                required
+              />
+            </label>
+            <label>
+              Importancia
               <select
                 value={importance}
                 onChange={(e) => setImportance(e.target.value as Importance)}
-                aria-label="Importancia"
               >
                 <option value="alta">Alta</option>
                 <option value="media">Media</option>
                 <option value="baja">Baja</option>
               </select>
+            </label>
+            <div className="form__actions">
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={closeForm}
+              >
+                Cancelar
+              </button>
               <button type="submit" className="btn btn--primary">
-                Agregar
+                Guardar tarea
               </button>
             </div>
           </form>
-        </div>
+        </FormSheet>
 
         <div className="cal-pay">
           <div>
