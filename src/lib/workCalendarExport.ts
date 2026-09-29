@@ -77,11 +77,8 @@ export function exportWorkCalendarExcel(
 ): void {
   const lines = ['Fecha,precinto']
   for (const group of groups) {
-    lines.push(`${escapeCsv(group.label)},`)
-    for (const entry of group.entries) {
-      lines.push(`,${escapeCsv(entry.text)}`)
-    }
-    lines.push(',')
+    const precintos = group.entries.map((entry) => entry.text).join(' | ')
+    lines.push(`${escapeCsv(group.label)},${escapeCsv(precintos)}`)
   }
 
   const csv = `\uFEFF${lines.join('\r\n')}`
@@ -100,21 +97,14 @@ function buildReportHtml(
       ? '<tr><td colspan="2">No hay precintos en el rango seleccionado.</td></tr>'
       : groups
           .map((group) => {
-            const dayHeader = `
-              <tr class="day-head">
-                <td>${escapeHtml(group.label)}</td>
-                <td></td>
-              </tr>`
-            const entryRows = group.entries
-              .map(
-                (entry) => `
+            const precintos = group.entries
+              .map((entry) => escapeHtml(entry.text))
+              .join(' | ')
+            return `
               <tr>
-                <td class="empty-date"></td>
-                <td>${escapeHtml(entry.text)}</td>
-              </tr>`,
-              )
-              .join('')
-            return `${dayHeader}${entryRows}<tr class="spacer"><td></td><td></td></tr>`
+                <td class="date">${escapeHtml(group.label)}</td>
+                <td>${precintos}</td>
+              </tr>`
           })
           .join('')
 
@@ -127,40 +117,32 @@ function buildReportHtml(
     body {
       font-family: Arial, Helvetica, sans-serif;
       color: #1a1a1a;
-      margin: 28px;
+      margin: 16px;
     }
-    h1 { font-size: 18px; margin: 0 0 6px; }
-    .summary { color: #555; margin: 0 0 18px; font-size: 13px; }
+    h1 { font-size: 16px; margin: 0 0 4px; }
+    .summary { color: #555; margin: 0 0 10px; font-size: 12px; }
     table {
       border-collapse: collapse;
       width: 100%;
-      max-width: 520px;
     }
     th, td {
-      border: 1px solid #333;
-      padding: 6px 10px;
+      border: 1px solid #444;
+      padding: 3px 6px;
       text-align: left;
-      font-size: 13px;
+      font-size: 11px;
+      vertical-align: top;
     }
     th {
       background: #e8e8e8;
       font-weight: 700;
     }
-    tr.day-head td:first-child {
-      font-weight: 700;
-    }
-    td.empty-date {
-      background: #f3f3f3;
-    }
-    tr.spacer td {
-      border-left-color: transparent;
-      border-right-color: transparent;
-      height: 8px;
-      padding: 0;
+    td.date {
+      white-space: nowrap;
+      width: 1%;
+      font-weight: 600;
     }
     @media print {
-      body { margin: 12px; }
-      tr.spacer td { border: none; }
+      body { margin: 8px; }
     }
   </style>
 </head>
