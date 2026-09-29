@@ -9,6 +9,12 @@ import {
   monthKeyFromDate,
   parseMonthKey,
 } from '../lib/storage'
+import {
+  exportWorkCalendarExcel,
+  exportWorkCalendarPdf,
+  groupEntriesByDateRange,
+} from '../lib/workCalendarExport'
+import { FormSheet } from './FormSheet'
 
 interface Props {
   monthKey: string
@@ -38,6 +44,14 @@ function defaultSelectedDay(monthKey: string): number {
   return 1
 }
 
+function monthBounds(monthKey: string): { from: string; to: string } {
+  const maxDay = daysInMonth(monthKey)
+  return {
+    from: `${monthKey}-01`,
+    to: `${monthKey}-${String(maxDay).padStart(2, '0')}`,
+  }
+}
+
 export function WorkCalendarSection({
   monthKey,
   blurb,
@@ -49,6 +63,12 @@ export function WorkCalendarSection({
     defaultSelectedDay(monthKey),
   )
   const [amount, setAmount] = useState('')
+  const [exportOpen, setExportOpen] = useState(false)
+  const bounds = monthBounds(monthKey)
+  const [rangeFrom, setRangeFrom] = useState(bounds.from)
+  const [rangeTo, setRangeTo] = useState(bounds.to)
+  const [exportError, setExportError] = useState<string | null>(null)
+
   const maxDay = daysInMonth(monthKey)
   const monthLabel = formatMonthLabel(monthKey)
   const cells = useMemo(() => buildCalendar(monthKey), [monthKey])
@@ -58,6 +78,11 @@ export function WorkCalendarSection({
   useEffect(() => {
     setSelectedDay(defaultSelectedDay(monthKey))
     setAmount('')
+    const next = monthBounds(monthKey)
+    setRangeFrom(next.from)
+    setRangeTo(next.to)
+    setExportOpen(false)
+    setExportError(null)
   }, [monthKey])
 
   useEffect(() => {
@@ -100,14 +125,62 @@ export function WorkCalendarSection({
     setAmount('')
   }
 
+  function openExport() {
+    const next = monthBounds(monthKey)
+    setRangeFrom(next.from)
+    setRangeTo(next.to)
+    setExportError(null)
+    setExportOpen(true)
+  }
+
+  function closeExport() {
+    setExportOpen(false)
+    setExportError(null)
+  }
+
+  function runExport(kind: 'excel' | 'pdf') {
+    if (!rangeFrom || !rangeTo) {
+      setExportError('Selecciona un rango de fechas.')
+      return
+    }
+    const groups = groupEntriesByDateRange(entries, rangeFrom, rangeTo)
+    if (groups.length === 0) {
+      setExportError('No hay números en ese rango de fechas.')
+      return
+    }
+    setExportError(null)
+    const from = rangeFrom <= rangeTo ? rangeFrom : rangeTo
+    const to = rangeFrom <= rangeTo ? rangeTo : rangeFrom
+    if (kind === 'excel') {
+      exportWorkCalendarExcel(groups, from, to)
+    } else {
+      exportWorkCalendarPdf(groups, from, to)
+    }
+    closeExport()
+  }
+
   return (
     <section className="panel work-cal" aria-labelledby="work-cal-title">
-      <header className="panel__head">
+      <header className="panel__head panel__head--row">
         <div>
           <h2 id="work-cal-title">Calendario</h2>
           <p>{blurb}</p>
         </div>
+        <button
+          type="button"
+          className="btn btn--ghost"
+          onClick={openExport}
+        >
+          Exportar
+        </button>
       </header>
+
+      <div className="work-cal__month-banner" aria-live="polite">
+        <span className="board-card__eyebrow">Total del mes</span>
+        <strong>
+          {monthCount} {monthCount === 1 ? 'número' : 'números'}
+        </strong>
+      </div>
 
       <div className="work-cal__layout">
         <div className="work-cal__board">
@@ -165,9 +238,13 @@ export function WorkCalendarSection({
               <h3>Día {selectedDay}</h3>
             </div>
             <span className="cal-day-panel__count">
-              Total: {dayCount}
+              Día: {dayCount}
             </span>
           </header>
+
+          <p className="work-cal__side-month-total" aria-live="polite">
+            Total del mes: <strong>{monthCount}</strong>
+          </p>
 
           <form className="cal-add work-cal__add" onSubmit={handleAdd}>
             <label className="field">
@@ -212,6 +289,62 @@ export function WorkCalendarSection({
           </ul>
         </div>
       </div>
+
+      <FormSheet
+        open={exportOpen}
+        title="Exportar calendario"
+        description="Elige un rango de fechas. El archivo listará cada día y, debajo, todos los números de ese día."
+        onClose={closeExport}
+      >
+        <form
+          className="form form--sheet"
+          onSubmit={(e) => {
+            e.preventDefault()
+            runExport('excel')
+          }}
+        >
+          <div className="form__row">
+            <label>
+              Desde
+              <input
+                type="date"
+                value={rangeFrom}
+                onChange={(e) => setRangeFrom(e.target.value)}
+                required
+              />
+            </label>
+            <label>
+              Hasta
+              <input
+                type="date"
+                value={rangeTo}
+                onChange={(e) => setRangeTo(e.target.value)}
+                required
+              />
+            </label>
+          </div>
+          {exportError && <p className="form-error">{exportError}</p>}
+          <div className="form__actions form__actions--wrap">
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={closeExport}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={() => runExport('pdf')}
+            >
+              Exportar PDF
+            </button>
+            <button type="submit" className="btn btn--primary">
+              Exportar Excel
+            </button>
+          </div>
+        </form>
+      </FormSheet>
     </section>
   )
 }
