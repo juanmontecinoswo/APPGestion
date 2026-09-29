@@ -23,14 +23,11 @@ function parseDateKey(dateKey: string): Date | null {
   return date
 }
 
+/** Fecha en formato DD/MM/YYYY */
 export function formatDateKeyLabel(dateKey: string): string {
-  const date = parseDateKey(dateKey)
-  if (!date) return dateKey
-  return date.toLocaleDateString('es-CL', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey)
+  if (!match) return dateKey
+  return `${match[3]}/${match[2]}/${match[1]}`
 }
 
 export function groupEntriesByDateRange(
@@ -95,7 +92,7 @@ export function exportWorkCalendarExcel(
   fromKey: string,
   toKey: string,
 ): void {
-  const lines = ['Fecha,Número']
+  const lines = ['Fecha,precinto']
   for (const group of groups) {
     lines.push(`${escapeCsv(group.label)},`)
     for (const entry of group.entries) {
@@ -115,29 +112,26 @@ function buildReportHtml(
   toKey: string,
 ): string {
   const total = groups.reduce((sum, group) => sum + group.entries.length, 0)
-  const body =
+  const rows =
     groups.length === 0
-      ? '<p>No hay números en el rango seleccionado.</p>'
+      ? '<tr><td colspan="2">No hay precintos en el rango seleccionado.</td></tr>'
       : groups
           .map((group) => {
-            const items =
-              group.entries.length === 0
-                ? '<li class="empty">Sin registros</li>'
-                : group.entries
-                    .map(
-                      (entry) =>
-                        `<li>${escapeHtml(entry.text)}</li>`,
-                    )
-                    .join('')
-            return `
-              <section class="day">
-                <h2>${escapeHtml(group.label)}</h2>
-                <p class="meta">${group.entries.length} ${
-                  group.entries.length === 1 ? 'número' : 'números'
-                }</p>
-                <ul>${items}</ul>
-              </section>
-            `
+            const dayHeader = `
+              <tr class="day-head">
+                <td>${escapeHtml(group.label)}</td>
+                <td></td>
+              </tr>`
+            const entryRows = group.entries
+              .map(
+                (entry) => `
+              <tr>
+                <td class="empty-date"></td>
+                <td>${escapeHtml(entry.text)}</td>
+              </tr>`,
+              )
+              .join('')
+            return `${dayHeader}${entryRows}<tr class="spacer"><td></td><td></td></tr>`
           })
           .join('')
 
@@ -145,24 +139,45 @@ function buildReportHtml(
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <title>Calendario ${fromKey} a ${toKey}</title>
+  <title>Calendario ${formatDateKeyLabel(fromKey)} a ${formatDateKeyLabel(toKey)}</title>
   <style>
     body {
-      font-family: Georgia, "Times New Roman", serif;
+      font-family: Arial, Helvetica, sans-serif;
       color: #1a1a1a;
-      margin: 32px;
-      line-height: 1.45;
+      margin: 28px;
     }
-    h1 { font-size: 22px; margin: 0 0 6px; }
-    .summary { color: #555; margin: 0 0 24px; font-size: 14px; }
-    .day { margin: 0 0 22px; page-break-inside: avoid; }
-    .day h2 { font-size: 16px; margin: 0 0 4px; }
-    .meta { margin: 0 0 8px; color: #666; font-size: 13px; }
-    ul { margin: 0; padding-left: 18px; }
-    li { margin: 2px 0; font-family: "Segoe UI", Arial, sans-serif; }
-    li.empty { color: #888; list-style: none; margin-left: -18px; }
+    h1 { font-size: 18px; margin: 0 0 6px; }
+    .summary { color: #555; margin: 0 0 18px; font-size: 13px; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 520px;
+    }
+    th, td {
+      border: 1px solid #333;
+      padding: 6px 10px;
+      text-align: left;
+      font-size: 13px;
+    }
+    th {
+      background: #e8e8e8;
+      font-weight: 700;
+    }
+    tr.day-head td:first-child {
+      font-weight: 700;
+    }
+    td.empty-date {
+      background: #f3f3f3;
+    }
+    tr.spacer td {
+      border-left-color: transparent;
+      border-right-color: transparent;
+      height: 8px;
+      padding: 0;
+    }
     @media print {
-      body { margin: 16px; }
+      body { margin: 12px; }
+      tr.spacer td { border: none; }
     }
   </style>
 </head>
@@ -171,9 +186,19 @@ function buildReportHtml(
   <p class="summary">
     Rango: ${escapeHtml(formatDateKeyLabel(fromKey))} — ${escapeHtml(
       formatDateKeyLabel(toKey),
-    )} · Total: ${total} ${total === 1 ? 'número' : 'números'}
+    )} · Total: ${total} ${total === 1 ? 'precinto' : 'precintos'}
   </p>
-  ${body}
+  <table>
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>precinto</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows}
+    </tbody>
+  </table>
 </body>
 </html>`
 }
@@ -198,4 +223,3 @@ export function exportWorkCalendarPdf(
     popup.print()
   }, 250)
 }
-

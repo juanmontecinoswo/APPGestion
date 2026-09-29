@@ -145,7 +145,7 @@ export function WorkCalendarSection({
     }
     const groups = groupEntriesByDateRange(entries, rangeFrom, rangeTo)
     if (groups.length === 0) {
-      setExportError('No hay números en ese rango de fechas.')
+      setExportError('No hay precintos en ese rango de fechas.')
       return
     }
     setExportError(null)
@@ -293,7 +293,7 @@ export function WorkCalendarSection({
       <FormSheet
         open={exportOpen}
         title="Exportar calendario"
-        description="Elige un rango de fechas. El archivo listará cada día y, debajo, todos los números de ese día."
+        description="Elige un rango de fechas. El archivo listará cada fecha (DD/MM/AAAA) y, debajo, todos los precintos de ese día."
         onClose={closeExport}
       >
         <form
