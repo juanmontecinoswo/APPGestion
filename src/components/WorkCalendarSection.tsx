@@ -8,6 +8,7 @@ import {
   formatMonthLabel,
   monthKeyFromDate,
   parseMonthKey,
+  shiftMonth,
 } from '../lib/storage'
 import {
   exportWorkCalendarExcel,
@@ -17,7 +18,6 @@ import {
 import { FormSheet } from './FormSheet'
 
 interface Props {
-  monthKey: string
   blurb: string
   entries: WorkDayEntry[]
   onAdd: (entry: WorkDayEntry) => void
@@ -53,43 +53,72 @@ function monthBounds(monthKey: string): { from: string; to: string } {
 }
 
 export function WorkCalendarSection({
-  monthKey,
   blurb,
   entries,
   onAdd,
   onRemove,
 }: Props) {
+  const [viewMonth, setViewMonth] = useState(() => monthKeyFromDate())
+  const [followCurrentMonth, setFollowCurrentMonth] = useState(true)
   const [selectedDay, setSelectedDay] = useState(() =>
-    defaultSelectedDay(monthKey),
+    defaultSelectedDay(monthKeyFromDate()),
   )
   const [amount, setAmount] = useState('')
   const [exportOpen, setExportOpen] = useState(false)
-  const bounds = monthBounds(monthKey)
+  const bounds = monthBounds(viewMonth)
   const [rangeFrom, setRangeFrom] = useState(bounds.from)
   const [rangeTo, setRangeTo] = useState(bounds.to)
   const [exportError, setExportError] = useState<string | null>(null)
 
-  const maxDay = daysInMonth(monthKey)
-  const monthLabel = formatMonthLabel(monthKey)
-  const cells = useMemo(() => buildCalendar(monthKey), [monthKey])
+  const maxDay = daysInMonth(viewMonth)
+  const monthLabel = formatMonthLabel(viewMonth)
+  const cells = useMemo(() => buildCalendar(viewMonth), [viewMonth])
   const todayKey = monthKeyFromDate()
   const todayDay = new Date().getDate()
 
-  useEffect(() => {
-    setSelectedDay(defaultSelectedDay(monthKey))
+  function goToMonth(nextMonth: string, follow = false) {
+    setViewMonth(nextMonth)
+    setFollowCurrentMonth(follow)
+    setSelectedDay(defaultSelectedDay(nextMonth))
     setAmount('')
-    const next = monthBounds(monthKey)
+  }
+
+  // Si el mes real cambia (p. ej. llega octubre), actualiza la vista
+  // cuando el usuario está siguiendo el mes actual.
+  useEffect(() => {
+    function syncToCurrentMonth() {
+      const current = monthKeyFromDate()
+      if (!followCurrentMonth) return
+      setViewMonth((prev) => (prev === current ? prev : current))
+    }
+
+    syncToCurrentMonth()
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') syncToCurrentMonth()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    const timer = window.setInterval(syncToCurrentMonth, 60_000)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.clearInterval(timer)
+    }
+  }, [followCurrentMonth])
+
+  useEffect(() => {
+    setSelectedDay(defaultSelectedDay(viewMonth))
+    setAmount('')
+    const next = monthBounds(viewMonth)
     setRangeFrom(next.from)
     setRangeTo(next.to)
     setExportOpen(false)
     setExportError(null)
-  }, [monthKey])
+  }, [viewMonth])
 
   useEffect(() => {
     if (selectedDay > maxDay) setSelectedDay(maxDay)
   }, [selectedDay, maxDay])
 
-  const monthPrefix = `${monthKey}-`
+  const monthPrefix = `${viewMonth}-`
   const monthEntries = useMemo(
     () => entries.filter((entry) => entry.dateKey.startsWith(monthPrefix)),
     [entries, monthPrefix],
@@ -105,7 +134,7 @@ export function WorkCalendarSection({
     return map
   }, [monthEntries])
 
-  const selectedKey = dateKeyFromParts(monthKey, selectedDay)
+  const selectedKey = dateKeyFromParts(viewMonth, selectedDay)
   const dayEntries = monthEntries
     .filter((entry) => entry.dateKey === selectedKey)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -126,7 +155,7 @@ export function WorkCalendarSection({
   }
 
   function openExport() {
-    const next = monthBounds(monthKey)
+    const next = monthBounds(viewMonth)
     setRangeFrom(next.from)
     setRangeTo(next.to)
     setExportError(null)
@@ -189,9 +218,44 @@ export function WorkCalendarSection({
               <p className="board-card__eyebrow">Mes</p>
               <h3>{monthLabel}</h3>
             </div>
-            <span className="work-cal__month-total">
-              {monthCount} {monthCount === 1 ? 'número' : 'números'}
-            </span>
+            <div className="work-cal__nav" aria-label="Navegar mes">
+              <button
+                type="button"
+                className="btn btn--icon"
+                aria-label="Mes anterior"
+                onClick={() => goToMonth(shiftMonth(viewMonth, -1))}
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                className="btn btn--ghost btn--tiny"
+                onClick={() => goToMonth(monthKeyFromDate(), true)}
+              >
+                Hoy
+              </button>
+              <button
+                type="button"
+                className="btn btn--icon"
+                aria-label="Mes siguiente"
+                onClick={() => goToMonth(shiftMonth(viewMonth, 1))}
+              >
+                ›
+              </button>
+              <label className="work-cal__month-picker">
+                <span className="sr-only">Elegir mes</span>
+                <input
+                  type="month"
+                  value={viewMonth}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    if (!value) return
+                    goToMonth(value, value === monthKeyFromDate())
+                  }}
+                  aria-label="Elegir mes"
+                />
+              </label>
+            </div>
           </header>
 
           <div className="cal-grid work-cal__grid" role="grid" aria-label={monthLabel}>
@@ -204,7 +268,7 @@ export function WorkCalendarSection({
               if (day == null) {
                 return <span key={`e-${i}`} className="cal-grid__empty" />
               }
-              const isToday = monthKey === todayKey && day === todayDay
+              const isToday = viewMonth === todayKey && day === todayDay
               const isSelected = day === selectedDay
               const count = countsByDay.get(day) ?? 0
               const hasCount = count > 0
@@ -229,6 +293,10 @@ export function WorkCalendarSection({
               )
             })}
           </div>
+          <p className="work-cal__month-total">
+            {monthCount} {monthCount === 1 ? 'número' : 'números'} en{' '}
+            {monthLabel}
+          </p>
         </div>
 
         <div className="cal-day-panel work-cal__day-panel">

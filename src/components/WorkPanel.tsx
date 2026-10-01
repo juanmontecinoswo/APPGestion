@@ -482,7 +482,6 @@ export function WorkPanel({
 
       {section === 'calendario' && (
         <WorkCalendarSection
-          monthKey={monthKey}
           blurb={current.blurb}
           entries={workDayEntries}
           onAdd={onAddDayEntry}
