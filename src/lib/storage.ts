@@ -1,6 +1,9 @@
 import type {
   AppState,
   Expense,
+  ProjectEdge,
+  ProjectNode,
+  ProjectPort,
   RecurrenceEnd,
   RecurringExpense,
   Reminder,
@@ -9,7 +12,10 @@ import type {
   WorkItem,
   WorkLink,
   WorkNote,
+  WorkProject,
 } from '../types'
+
+const PROJECT_PORTS: ProjectPort[] = ['n', 'e', 's', 'w']
 
 const STORAGE_PREFIX = 'mesura-data-v1-'
 const LEGACY_STORAGE_KEY = 'mesura-v3'
@@ -260,6 +266,7 @@ function seedState(monthKey: string): AppState {
   const workNotes: WorkNote[] = []
   const workLinks: WorkLink[] = []
   const workDayEntries: WorkDayEntry[] = []
+  const workProjects: WorkProject[] = []
 
   return {
     tasks,
@@ -270,6 +277,7 @@ function seedState(monthKey: string): AppState {
     workNotes,
     workLinks,
     workDayEntries,
+    workProjects,
   }
 }
 
@@ -362,6 +370,63 @@ function normalizeState(raw: Partial<AppState>): AppState {
         } satisfies WorkDayEntry
       })
       .filter((entry): entry is WorkDayEntry => entry != null),
+    workProjects: (raw.workProjects ?? [])
+      .map((project) => normalizeWorkProject(project))
+      .filter((project): project is WorkProject => project != null),
+  }
+}
+
+function normalizeWorkProject(raw: Partial<WorkProject>): WorkProject | null {
+  if (!raw.id || typeof raw.title !== 'string') return null
+  const now = new Date().toISOString()
+  const nodes = (raw.nodes ?? [])
+    .map((node) => normalizeProjectNode(node))
+    .filter((node): node is ProjectNode => node != null)
+  const nodeIds = new Set(nodes.map((node) => node.id))
+  const edges = (raw.edges ?? [])
+    .map((edge) => normalizeProjectEdge(edge, nodeIds))
+    .filter((edge): edge is ProjectEdge => edge != null)
+  return {
+    id: raw.id,
+    title: raw.title.trim() || 'Proyecto',
+    nodes,
+    edges,
+    createdAt: raw.createdAt ?? now,
+    updatedAt: raw.updatedAt ?? raw.createdAt ?? now,
+  }
+}
+
+function normalizeProjectNode(raw: Partial<ProjectNode>): ProjectNode | null {
+  if (!raw.id) return null
+  return {
+    id: raw.id,
+    title: typeof raw.title === 'string' ? raw.title : 'Ventana',
+    points: Array.isArray(raw.points)
+      ? raw.points.filter((p): p is string => typeof p === 'string')
+      : [],
+    x: Number.isFinite(raw.x) ? Number(raw.x) : 40,
+    y: Number.isFinite(raw.y) ? Number(raw.y) : 40,
+  }
+}
+
+function normalizeProjectEdge(
+  raw: Partial<ProjectEdge>,
+  nodeIds: Set<string>,
+): ProjectEdge | null {
+  if (!raw.id || !raw.fromId || !raw.toId) return null
+  if (!nodeIds.has(raw.fromId) || !nodeIds.has(raw.toId)) return null
+  const fromPort = PROJECT_PORTS.includes(raw.fromPort as ProjectPort)
+    ? (raw.fromPort as ProjectPort)
+    : 'e'
+  const toPort = PROJECT_PORTS.includes(raw.toPort as ProjectPort)
+    ? (raw.toPort as ProjectPort)
+    : 'w'
+  return {
+    id: raw.id,
+    fromId: raw.fromId,
+    fromPort,
+    toId: raw.toId,
+    toPort,
   }
 }
 
@@ -565,6 +630,42 @@ export function createWorkDayEntry(
     ...partial,
     id: uid(),
     createdAt: new Date().toISOString(),
+  }
+}
+
+export function createWorkProject(
+  partial: Pick<WorkProject, 'title'> &
+    Partial<Pick<WorkProject, 'nodes' | 'edges'>>,
+): WorkProject {
+  const now = new Date().toISOString()
+  return {
+    id: uid(),
+    title: partial.title.trim() || 'Proyecto',
+    nodes: partial.nodes ?? [],
+    edges: partial.edges ?? [],
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+export function createProjectNode(
+  partial?: Partial<Omit<ProjectNode, 'id'>>,
+): ProjectNode {
+  return {
+    id: uid(),
+    title: partial?.title?.trim() || 'Nueva ventana',
+    points: partial?.points ?? [],
+    x: partial?.x ?? 80,
+    y: partial?.y ?? 80,
+  }
+}
+
+export function createProjectEdge(
+  partial: Omit<ProjectEdge, 'id'>,
+): ProjectEdge {
+  return {
+    ...partial,
+    id: uid(),
   }
 }
 

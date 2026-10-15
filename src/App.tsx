@@ -28,6 +28,7 @@ const WORK_SECTION_ICONS: Record<WorkSection, string> = {
   notas: '✎',
   links: '⛓',
   calendario: '▦',
+  proyectos: '◎',
 }
 
 function userInitials(name: string): string {
@@ -547,6 +548,7 @@ function AuthenticatedApp({
               workNotes={store.workNotes}
               workLinks={store.workLinks}
               workDayEntries={store.workDayEntries}
+              workProjects={store.workProjects}
               onAdd={store.addWorkItem}
               onUpdate={store.updateWorkItem}
               onRemove={store.removeWorkItem}
@@ -558,6 +560,9 @@ function AuthenticatedApp({
               onRemoveLink={store.removeWorkLink}
               onAddDayEntry={store.addWorkDayEntry}
               onRemoveDayEntry={store.removeWorkDayEntry}
+              onAddProject={store.addWorkProject}
+              onUpdateProject={store.updateWorkProject}
+              onRemoveProject={store.removeWorkProject}
             />
           )}
           {view === 'cuenta' && (

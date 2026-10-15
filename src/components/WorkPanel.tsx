@@ -7,6 +7,7 @@ import type {
   WorkItem,
   WorkLink,
   WorkNote,
+  WorkProject,
   WorkSection,
   WorkStatus,
 } from '../types'
@@ -18,6 +19,7 @@ import {
   daysInMonth,
 } from '../lib/storage'
 import { AddIconButton, FormSheet } from './FormSheet'
+import { ProjectsSection } from './ProjectsSection'
 import { WorkCalendarSection } from './WorkCalendarSection'
 
 interface Props {
@@ -28,6 +30,7 @@ interface Props {
   workNotes: WorkNote[]
   workLinks: WorkLink[]
   workDayEntries: WorkDayEntry[]
+  workProjects: WorkProject[]
   onAdd: (item: WorkItem) => void
   onUpdate: (id: string, patch: Partial<WorkItem>) => void
   onRemove: (id: string) => void
@@ -39,6 +42,9 @@ interface Props {
   onRemoveLink: (id: string) => void
   onAddDayEntry: (entry: WorkDayEntry) => void
   onRemoveDayEntry: (id: string) => void
+  onAddProject: (project: WorkProject) => void
+  onUpdateProject: (id: string, patch: Partial<WorkProject>) => void
+  onRemoveProject: (id: string) => void
 }
 
 const IMPORTANCE_LABEL: Record<Importance, string> = {
@@ -73,6 +79,7 @@ export function WorkPanel({
   workNotes,
   workLinks,
   workDayEntries,
+  workProjects,
   onAdd,
   onUpdate,
   onRemove,
@@ -84,6 +91,9 @@ export function WorkPanel({
   onRemoveLink,
   onAddDayEntry,
   onRemoveDayEntry,
+  onAddProject,
+  onUpdateProject,
+  onRemoveProject,
 }: Props) {
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState('')
@@ -486,6 +496,16 @@ export function WorkPanel({
           entries={workDayEntries}
           onAdd={onAddDayEntry}
           onRemove={onRemoveDayEntry}
+        />
+      )}
+
+      {section === 'proyectos' && (
+        <ProjectsSection
+          blurb={current.blurb}
+          projects={workProjects}
+          onAdd={onAddProject}
+          onUpdate={onUpdateProject}
+          onRemove={onRemoveProject}
         />
       )}
 

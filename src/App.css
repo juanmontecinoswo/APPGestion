@@ -1348,6 +1348,234 @@ em {
   }
 }
 
+.project-canvas__head {
+  align-items: center;
+}
+
+.project-canvas__title-wrap {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.project-canvas__title {
+  width: min(420px, 100%);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  padding: 0.2rem 0.4rem;
+}
+
+.project-canvas__title:focus {
+  border-color: rgba(110, 168, 255, 0.35);
+  background: rgba(255, 255, 255, 0.03);
+  outline: none;
+}
+
+.project-canvas__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.project-canvas__hint {
+  color: var(--accent);
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.project-canvas__help {
+  margin: 0 0 0.85rem;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.project-canvas__board {
+  position: relative;
+  min-height: 520px;
+  max-height: min(72vh, 760px);
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.07) 1px, transparent 0)
+      0 0 / 22px 22px,
+    rgba(0, 0, 0, 0.18);
+}
+
+.project-canvas__board.is-linking {
+  cursor: crosshair;
+}
+
+.project-canvas__surface {
+  position: relative;
+  min-width: 100%;
+  min-height: 100%;
+}
+
+.project-canvas__edges {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.project-canvas__edge {
+  fill: none;
+  stroke: rgba(110, 168, 255, 0.72);
+  stroke-width: 2.25;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+.project-canvas__edge.is-selected {
+  stroke: #89c0ff;
+  stroke-width: 3;
+}
+
+.project-canvas__empty {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.project-window {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.7rem 0.7rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow);
+  touch-action: none;
+  user-select: none;
+}
+
+.project-window.is-dragging {
+  opacity: 0.95;
+  z-index: 3;
+}
+
+.project-window__head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: grab;
+}
+
+.project-window__head input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 0.15rem 0;
+}
+
+.project-window__head input:focus {
+  outline: none;
+}
+
+.project-window__points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+  max-height: 160px;
+  overflow: auto;
+}
+
+.project-window__points li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.35rem;
+  padding: 0.28rem 0.4rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.project-window__empty {
+  color: var(--muted);
+  background: transparent !important;
+  font-size: 0.82rem;
+}
+
+.project-window__add {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.project-window__add input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--ink);
+  padding: 0.35rem 0.45rem;
+  font-size: 0.84rem;
+}
+
+.project-window__port {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 2px solid #89c0ff;
+  background: var(--bg-elevated);
+  padding: 0;
+  cursor: pointer;
+  z-index: 4;
+}
+
+.project-window__port:hover,
+.project-window__port.is-active {
+  background: #89c0ff;
+  box-shadow: 0 0 0 4px rgba(110, 168, 255, 0.22);
+}
+
+.project-window__port--n {
+  left: 50%;
+  top: -7px;
+  transform: translateX(-50%);
+}
+
+.project-window__port--e {
+  right: -7px;
+  top: 38%;
+  transform: translateY(-50%);
+}
+
+.project-window__port--s {
+  left: 50%;
+  bottom: -7px;
+  transform: translateX(-50%);
+}
+
+.project-window__port--w {
+  left: -7px;
+  top: 38%;
+  transform: translateY(-50%);
+}
+
 .collapse-trigger {
   display: flex;
   align-items: flex-start;

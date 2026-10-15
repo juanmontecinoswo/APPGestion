@@ -4,7 +4,14 @@ export type ExpenseKind = 'unico' | 'fijo' | 'mensual'
 export type RecurringKind = 'fijo' | 'mensual'
 export type RecurrenceEnd = 'manual' | 'months'
 export type WorkStatus = 'pendiente' | 'en_curso' | 'hecho'
-export type WorkSection = 'encargos' | 'notas' | 'links' | 'calendario'
+export type WorkSection =
+  | 'encargos'
+  | 'notas'
+  | 'links'
+  | 'calendario'
+  | 'proyectos'
+
+export type ProjectPort = 'n' | 'e' | 's' | 'w'
 
 export type UserRole = 'admin' | 'user'
 
@@ -129,6 +136,34 @@ export interface WorkDayEntry {
   createdAt: string
 }
 
+/** Ventana flotante dentro de un canvas de proyecto */
+export interface ProjectNode {
+  id: string
+  title: string
+  /** Puntos / ítems dentro de la ventana */
+  points: string[]
+  x: number
+  y: number
+}
+
+/** Conexión entre dos ventanas por un puerto (punto) */
+export interface ProjectEdge {
+  id: string
+  fromId: string
+  fromPort: ProjectPort
+  toId: string
+  toPort: ProjectPort
+}
+
+export interface WorkProject {
+  id: string
+  title: string
+  nodes: ProjectNode[]
+  edges: ProjectEdge[]
+  createdAt: string
+  updatedAt: string
+}
+
 export interface AppState {
   tasks: Task[]
   expenses: Expense[]
@@ -138,6 +173,7 @@ export interface AppState {
   workNotes: WorkNote[]
   workLinks: WorkLink[]
   workDayEntries: WorkDayEntry[]
+  workProjects: WorkProject[]
 }
 
 export const EXPENSE_CATEGORIES = [
@@ -212,6 +248,12 @@ export const WORK_SECTIONS: {
     label: 'Calendario',
     shortLabel: 'Calendario',
     blurb: 'Registra números por día, navega entre meses y ve cuántos has agregado.',
+  },
+  {
+    id: 'proyectos',
+    label: 'Proyectos',
+    shortLabel: 'Proyectos',
+    blurb: 'Canvas con ventanas flotantes, puntos y conexiones a voluntad.',
   },
 ]
 

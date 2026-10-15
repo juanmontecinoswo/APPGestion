@@ -9,6 +9,7 @@ import type {
   WorkItem,
   WorkLink,
   WorkNote,
+  WorkProject,
 } from '../types'
 import {
   ensureMonthlyExpenses,
@@ -248,6 +249,35 @@ export function useAppStore(userId: string, activeMonth: string) {
     }))
   }
 
+  function addWorkProject(project: WorkProject) {
+    setState((s) => ({
+      ...s,
+      workProjects: [project, ...s.workProjects],
+    }))
+  }
+
+  function updateWorkProject(id: string, patch: Partial<WorkProject>) {
+    setState((s) => ({
+      ...s,
+      workProjects: s.workProjects.map((project) =>
+        project.id === id
+          ? {
+              ...project,
+              ...patch,
+              updatedAt: new Date().toISOString(),
+            }
+          : project,
+      ),
+    }))
+  }
+
+  function removeWorkProject(id: string) {
+    setState((s) => ({
+      ...s,
+      workProjects: s.workProjects.filter((project) => project.id !== id),
+    }))
+  }
+
   function replaceState(next: AppState) {
     const normalized = next
     setState(normalized)
@@ -263,6 +293,7 @@ export function useAppStore(userId: string, activeMonth: string) {
     workNotes: state.workNotes,
     workLinks: state.workLinks,
     workDayEntries: state.workDayEntries,
+    workProjects: state.workProjects,
     recurringExpenses: state.recurringExpenses,
     addTask,
     updateTask,
@@ -289,6 +320,9 @@ export function useAppStore(userId: string, activeMonth: string) {
     removeWorkLink,
     addWorkDayEntry,
     removeWorkDayEntry,
+    addWorkProject,
+    updateWorkProject,
+    removeWorkProject,
     replaceState,
   }
 }
