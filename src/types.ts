@@ -136,6 +136,8 @@ export interface WorkDayEntry {
   createdAt: string
 }
 
+export type ProjectNodeTone = 'sky' | 'mint' | 'sand' | 'coral' | 'violet'
+
 /** Ventana flotante dentro de un canvas de proyecto */
 export interface ProjectNode {
   id: string
@@ -144,6 +146,7 @@ export interface ProjectNode {
   points: string[]
   x: number
   y: number
+  tone?: ProjectNodeTone
 }
 
 /** Conexión entre dos ventanas por un puerto (punto) */

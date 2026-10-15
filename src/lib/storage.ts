@@ -3,6 +3,7 @@ import type {
   Expense,
   ProjectEdge,
   ProjectNode,
+  ProjectNodeTone,
   ProjectPort,
   RecurrenceEnd,
   RecurringExpense,
@@ -16,6 +17,13 @@ import type {
 } from '../types'
 
 const PROJECT_PORTS: ProjectPort[] = ['n', 'e', 's', 'w']
+const PROJECT_TONES: ProjectNodeTone[] = [
+  'sky',
+  'mint',
+  'sand',
+  'coral',
+  'violet',
+]
 
 const STORAGE_PREFIX = 'mesura-data-v1-'
 const LEGACY_STORAGE_KEY = 'mesura-v3'
@@ -398,6 +406,9 @@ function normalizeWorkProject(raw: Partial<WorkProject>): WorkProject | null {
 
 function normalizeProjectNode(raw: Partial<ProjectNode>): ProjectNode | null {
   if (!raw.id) return null
+  const tone = PROJECT_TONES.includes(raw.tone as ProjectNodeTone)
+    ? (raw.tone as ProjectNodeTone)
+    : 'sky'
   return {
     id: raw.id,
     title: typeof raw.title === 'string' ? raw.title : 'Ventana',
@@ -406,6 +417,7 @@ function normalizeProjectNode(raw: Partial<ProjectNode>): ProjectNode | null {
       : [],
     x: Number.isFinite(raw.x) ? Number(raw.x) : 40,
     y: Number.isFinite(raw.y) ? Number(raw.y) : 40,
+    tone,
   }
 }
 
@@ -657,6 +669,7 @@ export function createProjectNode(
     points: partial?.points ?? [],
     x: partial?.x ?? 80,
     y: partial?.y ?? 80,
+    tone: partial?.tone ?? 'sky',
   }
 }
 
