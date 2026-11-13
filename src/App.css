@@ -367,6 +367,29 @@ em {
   line-height: 1.45;
 }
 
+.backup-auto {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.backup-auto h3 {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+}
+
+.backup-auto > p {
+  margin: 0 0 0.85rem;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.backup-auto__list {
+  margin: 0;
+}
+
 .shell--app.is-sidebar-collapsed .sidebar {
   padding: 0.75rem 0.45rem;
 }

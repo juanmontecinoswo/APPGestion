@@ -8,6 +8,10 @@ import {
   listManagedUsers,
   updateUserProfile,
 } from '../lib/auth'
+import {
+  listAutoBackups,
+  type AutoBackupInfo,
+} from '../lib/storage'
 import { AddIconButton, FormSheet } from './FormSheet'
 
 interface Props {
@@ -15,6 +19,7 @@ interface Props {
   onUserChanged: () => void
   onDownloadBackup: () => void
   onUploadBackup: (file: File) => Promise<void>
+  onRestoreAutoBackup: (dayKey: string) => void
   backupMessage?: string | null
   backupError?: string | null
 }
@@ -24,6 +29,7 @@ export function AccountPanel({
   onUserChanged,
   onDownloadBackup,
   onUploadBackup,
+  onRestoreAutoBackup,
   backupMessage = null,
   backupError = null,
 }: Props) {
@@ -46,10 +52,17 @@ export function AccountPanel({
 
   const [editName, setEditName] = useState('')
   const [editPassword, setEditPassword] = useState('')
+  const [autoBackups, setAutoBackups] = useState<AutoBackupInfo[]>(() =>
+    listAutoBackups(user.id, user.username),
+  )
 
   useEffect(() => {
     setDisplayName(user.displayName)
   }, [user.displayName])
+
+  useEffect(() => {
+    setAutoBackups(listAutoBackups(user.id, user.username))
+  }, [user.id, user.username, backupMessage])
 
   function refreshUsers() {
     setUsers(listManagedUsers())
@@ -257,6 +270,47 @@ export function AccountPanel({
           Al cargar un archivo se reemplazan solo los datos de tu sesión actual.
           Las cuentas de otros usuarios no se modifican.
         </p>
+
+        <div className="backup-auto">
+          <h3>Respaldos automáticos</h3>
+          <p>
+            Cada día se guarda un respaldo automático (máximo 10). Al crear uno
+            nuevo se elimina el más antiguo.
+          </p>
+          <ul className="list backup-auto__list">
+            {autoBackups.length === 0 && (
+              <li className="list__empty">
+                Aún no hay respaldos automáticos. Se crearán al usar la app.
+              </li>
+            )}
+            {autoBackups.map((item) => (
+              <li key={item.dayKey} className="list__item">
+                <div className="list__main">
+                  <strong>{item.label}</strong>
+                </div>
+                <div className="list__ops">
+                  <button
+                    type="button"
+                    className="btn btn--tiny btn--primary"
+                    onClick={() => {
+                      if (
+                        !window.confirm(
+                          `¿Restaurar el respaldo del ${item.label}? Se reemplazarán los datos actuales.`,
+                        )
+                      ) {
+                        return
+                      }
+                      onRestoreAutoBackup(item.dayKey)
+                      setAutoBackups(listAutoBackups(user.id, user.username))
+                    }}
+                  >
+                    Restaurar
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
 
       {isAdmin && (

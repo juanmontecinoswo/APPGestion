@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import type { UserAccount, ViewId, WorkSection } from './types'
 import { MENU_ITEMS, WORK_SECTIONS } from './types'
-import { monthKeyFromDate, downloadUserBackup, readBackupFile, importUserBackup } from './lib/storage'
+import {
+  monthKeyFromDate,
+  downloadUserBackup,
+  readBackupFile,
+  importUserBackup,
+  restoreAutoBackup,
+} from './lib/storage'
 import { useAuth } from './hooks/useAuth'
 import { useAppStore } from './hooks/useAppStore'
 import { LoginScreen } from './components/LoginScreen'
@@ -223,6 +229,23 @@ function AuthenticatedApp({
       )
     } finally {
       if (backupInputRef.current) backupInputRef.current.value = ''
+    }
+  }
+
+  function handleRestoreAutoBackup(dayKey: string) {
+    setBackupError(null)
+    try {
+      const next = restoreAutoBackup(user.id, dayKey, user.username)
+      store.replaceState(next)
+      setBackupMessage('Respaldo automático restaurado.')
+      setView('dashboard')
+      window.setTimeout(() => setBackupMessage(null), 3000)
+    } catch (error) {
+      setBackupError(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo restaurar el respaldo automático.',
+      )
     }
   }
 
@@ -571,6 +594,7 @@ function AuthenticatedApp({
               onUserChanged={onUserChanged}
               onDownloadBackup={handleDownloadBackup}
               onUploadBackup={handleBackupFile}
+              onRestoreAutoBackup={handleRestoreAutoBackup}
               backupMessage={backupMessage}
               backupError={backupError}
             />

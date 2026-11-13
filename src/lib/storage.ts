@@ -27,7 +27,12 @@ const PROJECT_TONES: ProjectNodeTone[] = [
 
 const STORAGE_PREFIX = 'mesura-data-v1-'
 const USERNAME_PREFIX = 'mesura-data-v1-u-'
+const AUTO_BACKUP_PREFIX = 'organizador-auto-backups-v1-'
 const LEGACY_STORAGE_KEY = 'mesura-v3'
+const MAX_AUTO_BACKUPS = 10
+const AUTO_BACKUP_THROTTLE_MS = 30_000
+
+const lastAutoBackupWrite = new Map<string, number>()
 
 function uid(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
@@ -62,6 +67,7 @@ function listOrphanDataKeys(excludeKeys: string[]): string[] {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
       if (!key || excluded.has(key)) continue
+      if (key.startsWith(AUTO_BACKUP_PREFIX)) continue
       if (
         key.startsWith(STORAGE_PREFIX) ||
         key.startsWith(USERNAME_PREFIX) ||
@@ -99,6 +105,13 @@ export function monthKeyFromDate(date = new Date()): string {
   const y = date.getFullYear()
   const m = String(date.getMonth() + 1).padStart(2, '0')
   return `${y}-${m}`
+}
+
+export function dayKeyFromDate(date = new Date()): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 export function parseMonthKey(key: string): { year: number; month: number } {
@@ -589,6 +602,159 @@ export function saveState(
       // ignore
     }
   }
+  ensureDailyAutoBackup(userId, state, username)
+}
+
+export interface AutoBackupInfo {
+  dayKey: string
+  createdAt: string
+  label: string
+}
+
+interface AutoBackupEntry {
+  dayKey: string
+  createdAt: string
+  data: AppState
+}
+
+interface AutoBackupVault {
+  entries: AutoBackupEntry[]
+}
+
+function autoBackupKey(userId: string, username?: string): string {
+  const slug = username?.trim()
+    ? username.trim().toLowerCase()
+    : userId
+  return `${AUTO_BACKUP_PREFIX}${slug}`
+}
+
+function formatAutoBackupLabel(dayKey: string, createdAt: string): string {
+  const date = new Date(`${dayKey}T12:00:00`)
+  const dayLabel = Number.isNaN(date.getTime())
+    ? dayKey
+    : date.toLocaleDateString('es-CL', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+  const time = new Date(createdAt)
+  const timeLabel = Number.isNaN(time.getTime())
+    ? ''
+    : time.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })
+  return timeLabel ? `${dayLabel} · ${timeLabel}` : dayLabel
+}
+
+function loadAutoBackupVault(
+  userId: string,
+  username?: string,
+): AutoBackupVault {
+  try {
+    const raw = localStorage.getItem(autoBackupKey(userId, username))
+    if (!raw) return { entries: [] }
+    const parsed = JSON.parse(raw) as Partial<AutoBackupVault>
+    const entries = Array.isArray(parsed.entries)
+      ? parsed.entries
+          .map((entry) => {
+            if (!entry?.dayKey || !entry.data) return null
+            return {
+              dayKey: entry.dayKey,
+              createdAt: entry.createdAt ?? new Date().toISOString(),
+              data: normalizeState(entry.data),
+            } satisfies AutoBackupEntry
+          })
+          .filter((entry): entry is AutoBackupEntry => entry != null)
+      : []
+    return { entries }
+  } catch {
+    return { entries: [] }
+  }
+}
+
+function saveAutoBackupVault(
+  userId: string,
+  vault: AutoBackupVault,
+  username?: string,
+): void {
+  localStorage.setItem(
+    autoBackupKey(userId, username),
+    JSON.stringify(vault),
+  )
+}
+
+/**
+ * Crea o actualiza el respaldo del día y mantiene como máximo 10 días.
+ * Al agregar un día nuevo, elimina el más antiguo.
+ */
+export function ensureDailyAutoBackup(
+  userId: string,
+  state: AppState,
+  username?: string,
+  options?: { force?: boolean },
+): AutoBackupInfo | null {
+  const dayKey = dayKeyFromDate()
+  const mapKey = autoBackupKey(userId, username)
+  const now = Date.now()
+  const lastWrite = lastAutoBackupWrite.get(mapKey) ?? 0
+  const vault = loadAutoBackupVault(userId, username)
+  const hasToday = vault.entries.some((entry) => entry.dayKey === dayKey)
+
+  if (
+    !options?.force &&
+    hasToday &&
+    now - lastWrite < AUTO_BACKUP_THROTTLE_MS
+  ) {
+    return null
+  }
+
+  const snapshot = normalizeState(state)
+  const createdAt = new Date().toISOString()
+  const withoutToday = vault.entries.filter((entry) => entry.dayKey !== dayKey)
+  const nextEntries: AutoBackupEntry[] = [
+    { dayKey, createdAt, data: snapshot },
+    ...withoutToday,
+  ]
+    .sort((a, b) => b.dayKey.localeCompare(a.dayKey))
+    .slice(0, MAX_AUTO_BACKUPS)
+
+  saveAutoBackupVault(userId, { entries: nextEntries }, username)
+  lastAutoBackupWrite.set(mapKey, now)
+
+  return {
+    dayKey,
+    createdAt,
+    label: formatAutoBackupLabel(dayKey, createdAt),
+  }
+}
+
+export function listAutoBackups(
+  userId: string,
+  username?: string,
+): AutoBackupInfo[] {
+  return loadAutoBackupVault(userId, username)
+    .entries.slice()
+    .sort((a, b) => b.dayKey.localeCompare(a.dayKey))
+    .map((entry) => ({
+      dayKey: entry.dayKey,
+      createdAt: entry.createdAt,
+      label: formatAutoBackupLabel(entry.dayKey, entry.createdAt),
+    }))
+}
+
+export function restoreAutoBackup(
+  userId: string,
+  dayKey: string,
+  username?: string,
+): AppState {
+  const entry = loadAutoBackupVault(userId, username).entries.find(
+    (item) => item.dayKey === dayKey,
+  )
+  if (!entry) {
+    throw new Error('No se encontró ese respaldo automático.')
+  }
+  const next = normalizeState(entry.data)
+  saveState(userId, next, username)
+  return next
 }
 
 export interface UserBackupMeta {

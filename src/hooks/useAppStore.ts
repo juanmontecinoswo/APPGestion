@@ -12,6 +12,7 @@ import type {
   WorkProject,
 } from '../types'
 import {
+  ensureDailyAutoBackup,
   ensureMonthlyExpenses,
   ensureMonthlyReminders,
   ensureMonthlyTasks,
@@ -31,7 +32,9 @@ export function useAppStore(
   )
 
   useEffect(() => {
-    setState(loadState(userId, username))
+    const loaded = loadState(userId, username)
+    setState(loaded)
+    ensureDailyAutoBackup(userId, loaded, username, { force: true })
   }, [userId, username])
 
   useEffect(() => {
