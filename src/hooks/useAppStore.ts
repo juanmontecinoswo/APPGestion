@@ -21,12 +21,18 @@ import {
   saveState,
 } from '../lib/storage'
 
-export function useAppStore(userId: string, activeMonth: string) {
-  const [state, setState] = useState<AppState>(() => loadState(userId))
+export function useAppStore(
+  userId: string,
+  activeMonth: string,
+  username?: string,
+) {
+  const [state, setState] = useState<AppState>(() =>
+    loadState(userId, username),
+  )
 
   useEffect(() => {
-    setState(loadState(userId))
-  }, [userId])
+    setState(loadState(userId, username))
+  }, [userId, username])
 
   useEffect(() => {
     setState((prev) => {
@@ -53,14 +59,14 @@ export function useAppStore(userId: string, activeMonth: string) {
         reminders,
         workItems,
       }
-      saveState(userId, next)
+      saveState(userId, next, username)
       return next
     })
-  }, [activeMonth, userId])
+  }, [activeMonth, userId, username])
 
   useEffect(() => {
-    saveState(userId, state)
-  }, [state, userId])
+    saveState(userId, state, username)
+  }, [state, userId, username])
 
   const monthTasks = state.tasks.filter((t) => t.monthKey === activeMonth)
   const monthExpenses = state.expenses.filter((e) => e.monthKey === activeMonth)
@@ -281,7 +287,7 @@ export function useAppStore(userId: string, activeMonth: string) {
   function replaceState(next: AppState) {
     const normalized = next
     setState(normalized)
-    saveState(userId, normalized)
+    saveState(userId, normalized, username)
   }
 
   return {

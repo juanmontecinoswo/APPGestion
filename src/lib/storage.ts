@@ -26,14 +26,73 @@ const PROJECT_TONES: ProjectNodeTone[] = [
 ]
 
 const STORAGE_PREFIX = 'mesura-data-v1-'
+const USERNAME_PREFIX = 'mesura-data-v1-u-'
 const LEGACY_STORAGE_KEY = 'mesura-v3'
 
 function uid(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-function dataKey(userId: string): string {
+function dataKeyByUserId(userId: string): string {
   return `${STORAGE_PREFIX}${userId}`
+}
+
+function dataKeyByUsername(username: string): string {
+  return `${USERNAME_PREFIX}${username.trim().toLowerCase()}`
+}
+
+/** Clave estable: preferimos username para no perder datos si el id de cuenta cambia. */
+function resolveDataKey(userId: string, username?: string): string {
+  if (username?.trim()) return dataKeyByUsername(username)
+  return dataKeyByUserId(userId)
+}
+
+function readRawStorage(key: string): string | null {
+  try {
+    return localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+function listOrphanDataKeys(excludeKeys: string[]): string[] {
+  const excluded = new Set(excludeKeys)
+  const found: string[] = []
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (!key || excluded.has(key)) continue
+      if (
+        key.startsWith(STORAGE_PREFIX) ||
+        key.startsWith(USERNAME_PREFIX) ||
+        key === LEGACY_STORAGE_KEY
+      ) {
+        found.push(key)
+      }
+    }
+  } catch {
+    return []
+  }
+  return found
+}
+
+function scoreStateSize(raw: string): number {
+  try {
+    const parsed = JSON.parse(raw) as Partial<AppState>
+    return (
+      (parsed.tasks?.length ?? 0) +
+      (parsed.expenses?.length ?? 0) +
+      (parsed.reminders?.length ?? 0) +
+      (parsed.workItems?.length ?? 0) +
+      (parsed.workNotes?.length ?? 0) +
+      (parsed.workLinks?.length ?? 0) +
+      (parsed.workDayEntries?.length ?? 0) +
+      (parsed.workProjects?.length ?? 0) +
+      (parsed.recurringExpenses?.length ?? 0)
+    )
+  } catch {
+    return 0
+  }
 }
 
 export function monthKeyFromDate(date = new Date()): string {
@@ -442,38 +501,94 @@ function normalizeProjectEdge(
   }
 }
 
-export function loadState(userId: string): AppState {
+export function loadState(userId: string, username?: string): AppState {
+  const primaryKey = resolveDataKey(userId, username)
+  const legacyUserIdKey = dataKeyByUserId(userId)
+
   try {
-    const raw =
-      localStorage.getItem(dataKey(userId)) ??
-      (localStorage.getItem(LEGACY_STORAGE_KEY) &&
-      !localStorage.getItem(dataKey(userId))
-        ? localStorage.getItem(LEGACY_STORAGE_KEY)
-        : null)
+    let sourceKey: string | null = null
+    let raw =
+      readRawStorage(primaryKey) ??
+      (primaryKey !== legacyUserIdKey ? readRawStorage(legacyUserIdKey) : null) ??
+      readRawStorage(LEGACY_STORAGE_KEY)
+
+    if (raw) {
+      if (readRawStorage(primaryKey)) sourceKey = primaryKey
+      else if (readRawStorage(legacyUserIdKey)) sourceKey = legacyUserIdKey
+      else sourceKey = LEGACY_STORAGE_KEY
+    }
+
+    // Si no hay datos para este usuario, recupera un respaldo huérfano del mismo navegador
+    if (!raw) {
+      const orphans = listOrphanDataKeys([primaryKey, legacyUserIdKey])
+      if (orphans.length > 0) {
+        let bestKey = orphans[0]
+        let bestScore = -1
+        for (const key of orphans) {
+          const candidate = readRawStorage(key)
+          if (!candidate) continue
+          const score = scoreStateSize(candidate)
+          if (score > bestScore) {
+            bestScore = score
+            bestKey = key
+            raw = candidate
+            sourceKey = key
+          }
+        }
+        if (bestScore <= 0) {
+          raw = null
+          sourceKey = null
+        } else if (bestKey) {
+          sourceKey = bestKey
+        }
+      }
+    }
+
     if (!raw) {
       const initial = seedState(monthKeyFromDate())
-      saveState(userId, initial)
+      saveState(userId, initial, username)
       return initial
     }
+
     const parsed = normalizeState(JSON.parse(raw) as Partial<AppState>)
     if (!Array.isArray(parsed.tasks) || !Array.isArray(parsed.expenses)) {
       throw new Error('invalid')
     }
-    // Migrate legacy shared store into this user once
-    if (!localStorage.getItem(dataKey(userId)) && localStorage.getItem(LEGACY_STORAGE_KEY)) {
-      saveState(userId, parsed)
-      localStorage.removeItem(LEGACY_STORAGE_KEY)
+
+    // Migrar a la clave estable por username
+    saveState(userId, parsed, username)
+    if (sourceKey && sourceKey !== primaryKey) {
+      try {
+        if (sourceKey === LEGACY_STORAGE_KEY || sourceKey === legacyUserIdKey) {
+          localStorage.removeItem(sourceKey)
+        }
+      } catch {
+        // ignore
+      }
     }
     return parsed
   } catch {
     const fallback = seedState(monthKeyFromDate())
-    saveState(userId, fallback)
+    saveState(userId, fallback, username)
     return fallback
   }
 }
 
-export function saveState(userId: string, state: AppState): void {
-  localStorage.setItem(dataKey(userId), JSON.stringify(state))
+export function saveState(
+  userId: string,
+  state: AppState,
+  username?: string,
+): void {
+  const key = resolveDataKey(userId, username)
+  localStorage.setItem(key, JSON.stringify(state))
+  // Mantener también la clave por id durante la transición
+  if (username?.trim()) {
+    try {
+      localStorage.setItem(dataKeyByUserId(userId), JSON.stringify(state))
+    } catch {
+      // ignore
+    }
+  }
 }
 
 export interface UserBackupMeta {
@@ -555,9 +670,13 @@ export async function readBackupFile(file: File): Promise<AppState> {
   return parseUserBackup(parsed)
 }
 
-export function importUserBackup(userId: string, state: AppState): AppState {
+export function importUserBackup(
+  userId: string,
+  state: AppState,
+  username?: string,
+): AppState {
   const next = normalizeState(state)
-  saveState(userId, next)
+  saveState(userId, next, username)
   return next
 }
 

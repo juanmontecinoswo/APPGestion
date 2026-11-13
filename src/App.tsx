@@ -69,7 +69,7 @@ function AuthenticatedApp({
   const [backupError, setBackupError] = useState<string | null>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const backupInputRef = useRef<HTMLInputElement>(null)
-  const store = useAppStore(user.id, monthKey)
+  const store = useAppStore(user.id, monthKey, user.username)
 
   const pendingTasks = store.monthTasks.filter((task) => !task.done).length
   const pendingPayments = store.monthExpenses.filter(
@@ -209,7 +209,7 @@ function AuthenticatedApp({
     }
     try {
       const parsed = await readBackupFile(file)
-      const next = importUserBackup(user.id, parsed)
+      const next = importUserBackup(user.id, parsed, user.username)
       store.replaceState(next)
       setBackupMessage('Backup cargado correctamente.')
       setMobileMenuOpen(false)

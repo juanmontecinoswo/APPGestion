@@ -244,6 +244,9 @@ export function adminDeleteUser(
   saveAuth({ users: auth.users.filter((u) => u.id !== targetId) })
   try {
     localStorage.removeItem(`mesura-data-v1-${targetId}`)
+    localStorage.removeItem(
+      `mesura-data-v1-u-${target.username.trim().toLowerCase()}`,
+    )
   } catch {
     /* ignore */
   }
