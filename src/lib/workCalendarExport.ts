@@ -55,7 +55,7 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url)
 }
 
-function escapeHtml(value: string): string {
+function escapeXml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -63,40 +63,25 @@ function escapeHtml(value: string): string {
     .replace(/"/g, '&quot;')
 }
 
+function escapeHtml(value: string): string {
+  return escapeXml(value).replace(/'/g, '&#39;')
+}
+
 function totalEntries(groups: DayGroup[]): number {
   return groups.reduce((sum, group) => sum + group.entries.length, 0)
 }
 
-function buildTableRows(groups: DayGroup[]): string {
-  if (groups.length === 0) {
-    return '<tr><td colspan="3">No hay precintos en el rango seleccionado.</td></tr>'
-  }
-
-  return groups
-    .map((group, groupIndex) => {
-      const stripe = groupIndex % 2 === 0 ? 'day-a' : 'day-b'
-      return group.entries
-        .map((entry, entryIndex) => {
-          const isFirst = entryIndex === 0
-          const dateCell = isFirst
-            ? `<td class="date" rowspan="${group.entries.length}">${escapeHtml(group.label)}</td>`
-            : ''
-          const countCell = isFirst
-            ? `<td class="count" rowspan="${group.entries.length}">${group.entries.length}</td>`
-            : ''
-          return `
-            <tr class="${stripe}">
-              ${dateCell}
-              <td class="precinto">${escapeHtml(entry.text)}</td>
-              ${countCell}
-            </tr>`
-        })
-        .join('')
-    })
-    .join('')
+function xmlCell(
+  value: string,
+  opts?: { type?: 'String' | 'Number'; style?: string },
+): string {
+  const type = opts?.type ?? 'String'
+  const style = opts?.style ? ` ss:StyleID="${opts.style}"` : ''
+  return `<Cell${style}><Data ss:Type="${type}">${escapeXml(value)}</Data></Cell>`
 }
 
-function buildSpreadsheetHtml(
+/** Excel SpreadsheetML — se abre como hoja real, no como HTML/CSV. */
+function buildSpreadsheetXml(
   groups: DayGroup[],
   fromKey: string,
   toKey: string,
@@ -104,102 +89,193 @@ function buildSpreadsheetHtml(
   const total = totalEntries(groups)
   const fromLabel = formatDateKeyLabel(fromKey)
   const toLabel = formatDateKeyLabel(toKey)
+  const rows: string[] = []
+
+  rows.push(`<Row ss:StyleID="Title">
+    ${xmlCell('Calendario de precintos', { style: 'Title' })}
+    <Cell ss:StyleID="Title"/><Cell ss:StyleID="Title"/>
+  </Row>`)
+  rows.push(`<Row ss:StyleID="Summary">
+    ${xmlCell(`Rango: ${fromLabel} — ${toLabel}`, { style: 'Summary' })}
+    ${xmlCell(`Total: ${total}`, { style: 'Summary' })}
+    ${xmlCell(`Días: ${groups.length}`, { style: 'Summary' })}
+  </Row>`)
+  rows.push('<Row/>')
+  rows.push(`<Row ss:StyleID="Header">
+    ${xmlCell('Fecha', { style: 'Header' })}
+    ${xmlCell('precinto', { style: 'Header' })}
+    ${xmlCell('Cantidad del día', { style: 'Header' })}
+  </Row>`)
+
+  if (groups.length === 0) {
+    rows.push(`<Row>
+      ${xmlCell('No hay precintos en el rango seleccionado.')}
+      <Cell/><Cell/>
+    </Row>`)
+  } else {
+    groups.forEach((group, groupIndex) => {
+      const dayStyle = groupIndex % 2 === 0 ? 'DayA' : 'DayB'
+      group.entries.forEach((entry, entryIndex) => {
+        rows.push(`<Row>
+          ${xmlCell(group.label, { style: dayStyle })}
+          ${xmlCell(entry.text, { style: 'Precinto' })}
+          ${xmlCell(
+            entryIndex === 0 ? String(group.entries.length) : '',
+            { type: entryIndex === 0 ? 'Number' : 'String', style: dayStyle },
+          )}
+        </Row>`)
+      })
+    })
+  }
+
+  rows.push(`<Row ss:StyleID="Total">
+    ${xmlCell('Total', { style: 'Total' })}
+    ${xmlCell(`${total} precintos`, { style: 'Total' })}
+    ${xmlCell(`${groups.length} días`, { style: 'Total' })}
+  </Row>`)
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:html="http://www.w3.org/TR/REC-html40">
+ <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office">
+  <Title>Calendario ${escapeXml(fromLabel)} a ${escapeXml(toLabel)}</Title>
+ </DocumentProperties>
+ <Styles>
+  <Style ss:ID="Default" ss:Name="Normal">
+   <Alignment ss:Vertical="Center" ss:WrapText="0"/>
+   <Font ss:FontName="Calibri" ss:Size="11"/>
+  </Style>
+  <Style ss:ID="Title">
+   <Font ss:FontName="Calibri" ss:Size="14" ss:Bold="1"/>
+  </Style>
+  <Style ss:ID="Summary">
+   <Font ss:FontName="Calibri" ss:Size="10" ss:Color="#4B5563"/>
+  </Style>
+  <Style ss:ID="Header">
+   <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+   <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/>
+   <Interior ss:Color="#1F4E79" ss:Pattern="Solid"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#163A5A"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#163A5A"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#163A5A"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#163A5A"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="DayA">
+   <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+   <Font ss:FontName="Calibri" ss:Size="11"/>
+   <Interior ss:Color="#FFFFFF" ss:Pattern="Solid"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="DayB">
+   <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+   <Font ss:FontName="Calibri" ss:Size="11"/>
+   <Interior ss:Color="#F3F7FB" ss:Pattern="Solid"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="Precinto">
+   <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+   <Font ss:FontName="Consolas" ss:Size="11"/>
+   <NumberFormat ss:Format="@"/>
+   <Borders>
+    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+    <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+    <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+    <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+   </Borders>
+  </Style>
+  <Style ss:ID="Total">
+   <Alignment ss:Horizontal="Left" ss:Vertical="Center"/>
+   <Font ss:FontName="Calibri" ss:Size="11" ss:Bold="1" ss:Color="#FFFFFF"/>
+   <Interior ss:Color="#1F4E79" ss:Pattern="Solid"/>
+  </Style>
+ </Styles>
+ <Worksheet ss:Name="Calendario">
+  <Table ss:DefaultRowHeight="18">
+   <Column ss:Index="1" ss:AutoFitWidth="0" ss:Width="100"/>
+   <Column ss:Index="2" ss:AutoFitWidth="0" ss:Width="160"/>
+   <Column ss:Index="3" ss:AutoFitWidth="0" ss:Width="120"/>
+   ${rows.join('\n   ')}
+  </Table>
+  <WorksheetOptions xmlns="urn:schemas-microsoft-com:office:excel">
+   <Selected/>
+   <FreezePanes/>
+   <FrozenNoSplit/>
+   <SplitHorizontal>4</SplitHorizontal>
+   <TopRowBottomPane>4</TopRowBottomPane>
+  </WorksheetOptions>
+ </Worksheet>
+</Workbook>`
+}
+
+function buildPrintHtml(
+  groups: DayGroup[],
+  fromKey: string,
+  toKey: string,
+): string {
+  const total = totalEntries(groups)
+  const fromLabel = formatDateKeyLabel(fromKey)
+  const toLabel = formatDateKeyLabel(toKey)
+  const bodyRows =
+    groups.length === 0
+      ? '<tr><td colspan="3">No hay precintos en el rango seleccionado.</td></tr>'
+      : groups
+          .map((group, groupIndex) => {
+            const stripe = groupIndex % 2 === 0 ? 'day-a' : 'day-b'
+            return group.entries
+              .map(
+                (entry, entryIndex) => `
+            <tr class="${stripe}">
+              <td class="date">${escapeHtml(group.label)}</td>
+              <td class="precinto">${escapeHtml(entry.text)}</td>
+              <td class="count">${entryIndex === 0 ? group.entries.length : ''}</td>
+            </tr>`,
+              )
+              .join('')
+          })
+          .join('')
 
   return `<!DOCTYPE html>
-<html lang="es" xmlns:o="urn:schemas-microsoft-com:office:office"
-  xmlns:x="urn:schemas-microsoft-com:office:excel">
+<html lang="es">
 <head>
   <meta charset="utf-8" />
-  <!--[if gte mso 9]>
-  <xml>
-    <x:ExcelWorkbook>
-      <x:ExcelWorksheets>
-        <x:ExcelWorksheet>
-          <x:Name>Calendario</x:Name>
-          <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
-        </x:ExcelWorksheet>
-      </x:ExcelWorksheets>
-    </x:ExcelWorkbook>
-  </xml>
-  <![endif]-->
-  <title>Calendario ${fromLabel} a ${toLabel}</title>
+  <title>Calendario ${escapeHtml(fromLabel)} a ${escapeHtml(toLabel)}</title>
   <style>
-    body {
-      font-family: Calibri, Arial, Helvetica, sans-serif;
-      color: #1f2933;
-      margin: 18px;
-      background: #fff;
-    }
-    h1 {
-      font-size: 18px;
-      margin: 0 0 4px;
-      color: #111827;
-    }
-    .summary {
-      margin: 0 0 14px;
-      color: #4b5563;
-      font-size: 12px;
-    }
-    table {
-      border-collapse: collapse;
-      width: auto;
-      min-width: 420px;
-    }
-    th {
-      background: #1f4e79;
-      color: #ffffff;
-      font-weight: 700;
-      font-size: 12px;
-      text-align: left;
-      padding: 8px 12px;
-      border: 1px solid #163a5a;
-      white-space: nowrap;
-    }
-    td {
-      border: 1px solid #cbd5e1;
-      padding: 7px 12px;
-      font-size: 12px;
-      vertical-align: middle;
-      text-align: left;
-      mso-number-format: "\\@";
-    }
-    td.date {
-      font-weight: 700;
-      white-space: nowrap;
-      width: 110px;
-      background: #eef5fb;
-      vertical-align: top;
-    }
-    td.precinto {
-      min-width: 140px;
-      font-family: Consolas, "Courier New", monospace;
-      letter-spacing: 0.02em;
-    }
-    td.count {
-      text-align: center;
-      width: 70px;
-      font-weight: 700;
-      color: #1f4e79;
-      vertical-align: top;
-      background: #f8fafc;
-    }
-    tr.day-a td.precinto { background: #ffffff; }
-    tr.day-b td.precinto { background: #f3f7fb; }
-    tr.day-b td.date { background: #e4eef8; }
-    tr.total td {
-      background: #1f4e79;
-      color: #fff;
-      font-weight: 700;
-      border-color: #163a5a;
-    }
+    body { font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; margin: 18px; }
+    h1 { font-size: 18px; margin: 0 0 4px; }
+    .summary { margin: 0 0 14px; color: #555; font-size: 12px; }
+    table { border-collapse: collapse; width: 100%; max-width: 560px; }
+    th { background: #1f4e79; color: #fff; text-align: left; padding: 8px 10px; font-size: 12px; }
+    td { border: 1px solid #cbd5e1; padding: 7px 10px; font-size: 12px; text-align: left; }
+    td.date { white-space: nowrap; font-weight: 700; }
+    td.precinto { font-family: Consolas, monospace; }
+    td.count { text-align: center; width: 90px; }
+    tr.day-b td { background: #f3f7fb; }
+    tr.total td { background: #1f4e79; color: #fff; font-weight: 700; }
+    @media print { body { margin: 10px; } }
   </style>
 </head>
 <body>
   <h1>Calendario de precintos</h1>
   <p class="summary">
     Rango: ${escapeHtml(fromLabel)} — ${escapeHtml(toLabel)}
-    &nbsp;·&nbsp; Total: ${total} ${total === 1 ? 'precinto' : 'precintos'}
-    &nbsp;·&nbsp; Días con registro: ${groups.length}
+    · Total: ${total} ${total === 1 ? 'precinto' : 'precintos'}
+    · Días: ${groups.length}
   </p>
   <table>
     <thead>
@@ -210,7 +286,7 @@ function buildSpreadsheetHtml(
       </tr>
     </thead>
     <tbody>
-      ${buildTableRows(groups)}
+      ${bodyRows}
       <tr class="total">
         <td>Total</td>
         <td>${total} precintos</td>
@@ -227,8 +303,8 @@ export function exportWorkCalendarExcel(
   fromKey: string,
   toKey: string,
 ): void {
-  const html = buildSpreadsheetHtml(groups, fromKey, toKey)
-  const blob = new Blob([`\uFEFF${html}`], {
+  const xml = buildSpreadsheetXml(groups, fromKey, toKey)
+  const blob = new Blob([xml], {
     type: 'application/vnd.ms-excel;charset=utf-8',
   })
   downloadBlob(blob, `calendario-${fromKey}_${toKey}.xls`)
@@ -239,7 +315,7 @@ export function exportWorkCalendarPdf(
   fromKey: string,
   toKey: string,
 ): void {
-  const html = buildSpreadsheetHtml(groups, fromKey, toKey)
+  const html = buildPrintHtml(groups, fromKey, toKey)
   const popup = window.open(
     '',
     '_blank',
